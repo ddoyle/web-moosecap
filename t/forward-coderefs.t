@@ -10,7 +10,7 @@ use Test::More 'tests' => 3;
 
     use Moose;
     use Test::More;
-    extends 'Sanguine';
+    extends 'Web::MooseCap';
 
     override 'setup' => sub {
         my $self = shift;

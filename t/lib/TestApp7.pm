@@ -1,7 +1,7 @@
 package TestApp7;
 
 use Moose;
-extends 'Sanguine';
+extends 'Web::MooseCap';
 use CGI::Carp;
 
 

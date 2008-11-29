@@ -9,7 +9,7 @@ $ENV{CGI_APP_RETURN_ONLY} = 1;
     use Moose;
     use Test::More;
 
-    extends 'Sanguine';
+    extends 'Web::MooseCap';
     override 'setup' => sub {
         my $self = shift;
         $self->run_modes([qw(
@@ -37,7 +37,7 @@ Example1->new->run;
 
     use Moose;
     use Test::More;
-    extends 'Sanguine';
+    extends 'Web::MooseCap';
 
     override 'setup' => sub {
         my $self = shift;
@@ -65,7 +65,7 @@ Example2->new->run;
 
     use Moose;
     use Test::More;
-    extends 'Sanguine';
+    extends 'Web::MooseCap';
 
     override 'setup' => sub {
         my $self = shift;
@@ -97,7 +97,7 @@ Example3->new->run;
     use Moose;
     use Test::More;
 
-    extends 'Sanguine';
+    extends 'Web::MooseCap';
 
     override 'setup' => sub {
         my $self = shift;

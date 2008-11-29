@@ -12,7 +12,7 @@ plan 'no_plan';
 
     use Moose;
     use Test::More;
-    extends 'Sanguine';
+    extends 'Web::MooseCap';
 
     override 'setup' => sub {
         my $self = shift;

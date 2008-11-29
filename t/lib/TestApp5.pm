@@ -2,7 +2,7 @@
 package TestApp5;
 
 use Moose;
-extends 'Sanguine';
+extends 'Web::MooseCap';
 
 override 'setup' => sub {
 	my $self = shift;

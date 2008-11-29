@@ -2,7 +2,7 @@
 use strict;
 use Test::More tests => 112;
 
-BEGIN{use_ok('Sanguine');}
+BEGIN{use_ok('Web::MooseCap');}
 
 # Need CGI.pm for tests
 use CGI;
@@ -27,11 +27,11 @@ sub response_like {
 	like($body,	 $body_re,	 "$comment (body match)");
 }
 
-# Instantiate Sanguine
-# run() Sanguine object.	Expect header + output dump_html()
+# Instantiate Web::MooseCap
+# run() Web::MooseCap object.	Expect header + output dump_html()
 {
-	my $app = Sanguine->new();
-	isa_ok($app, 'Sanguine');
+	my $app = Web::MooseCap->new();
+	isa_ok($app, 'Web::MooseCap');
 
 	$app->query(CGI->new(""));
 	my $output = $app->run();
@@ -44,12 +44,12 @@ sub response_like {
 	);
 }
 
-# Instantiate Sanguine sub-class.
-# run() Sanguine sub-class. 
+# Instantiate Web::MooseCap sub-class.
+# run() Web::MooseCap sub-class. 
 # Expect HTTP header + 'Hello World: basic_test'.
 {
 	my $app = TestApp->new(query => CGI->new(""));
-	isa_ok($app, 'Sanguine');
+	isa_ok($app, 'Web::MooseCap');
 
 	response_like(
 		$app,
@@ -67,7 +67,7 @@ sub response_like {
   like($@, qr/Validation failed for 'HashRef'/, "params must be a hashref!");
 }
 
-# run() Sanguine sub-class, in run mode 'redirect_test'.
+# run() Web::MooseCap sub-class, in run mode 'redirect_test'.
 # Expect HTTP redirect header + 'Hello World: redirect_test'.
 {
 	my $app = TestApp->new();
@@ -82,7 +82,7 @@ sub response_like {
 }
 
 
-# run() Sanguine sub-class, in run mode 'redirect_test'.
+# run() Web::MooseCap sub-class, in run mode 'redirect_test'.
 # Expect HTTP redirect header + 'Hello World: redirect_test'.
 # ...just like the test above, but we pass query in via a hashref.
 {
@@ -98,7 +98,7 @@ sub response_like {
 	);
 }
 
-# run() Sanguine sub-class, in run mode 'dump_text'.
+# run() Web::MooseCap sub-class, in run mode 'dump_text'.
 {
 	my $app = TestApp->new();
 	$app->query(CGI->new({'test_rm' => 'dump_txt'}));
@@ -112,7 +112,7 @@ sub response_like {
 }
 
 
-# run() Sanguine sub-class, in run mode 'cookie_test'. 
+# run() Web::MooseCap sub-class, in run mode 'cookie_test'. 
 # Expect HTTP header w/ cookie:
 #	 'c_name' => 'c_value' + 'Hello World: cookie_test'.
 {
@@ -128,7 +128,7 @@ sub response_like {
 }
 
 
-# run() Sanguine sub-class, in run mode 'tmpl_test'. 
+# run() Web::MooseCap sub-class, in run mode 'tmpl_test'. 
 # Expect HTTP header + 'Hello World: tmpl_test'.
 {
 	my $app = TestApp->new(tmpl_path=>'t/lib/templates/');
@@ -143,7 +143,7 @@ sub response_like {
 }
 
 
-# run() Sanguine sub-class, in run mode 'tmpl_test'. 
+# run() Web::MooseCap sub-class, in run mode 'tmpl_test'. 
 # Expect HTTP header + 'Hello World: tmpl_test'.
 {
 	my $app = TestApp->new(tmpl_path=>'t/lib/templates/');
@@ -158,7 +158,7 @@ sub response_like {
 }
 
 
-# run() Sanguine sub-class, in run mode 'tmpl_badparam_test'.
+# run() Web::MooseCap sub-class, in run mode 'tmpl_badparam_test'.
 # Expect HTTP header + 'Hello World: tmpl_badparam_test'.
 {
 	my $app = TestApp->new(tmpl_path=>'t/lib/templates/');
@@ -468,7 +468,7 @@ sub response_like {
 
 # If called "too early" we get undef for current runmode.
 {
-  my $app = Sanguine->new;
+  my $app = Web::MooseCap->new;
 
   eval { $app->run_modes('whatever') };
 
@@ -478,7 +478,7 @@ sub response_like {
 
 # If called "too early" we get undef for current runmode.
 {
-  my $app = Sanguine->new;
+  my $app = Web::MooseCap->new;
   is($app->get_current_runmode, undef, "current runmode is undef before run");
   
   my $dump = $app->dump;
@@ -531,7 +531,7 @@ sub response_like {
 
 ###
 
-my $t27_ta_obj = Sanguine->new(
+my $t27_ta_obj = Web::MooseCap->new(
 	tmpl_path => [qw(t/lib/templates /some/other/test/path)]
 );
 my ($t1, $t2) = (0,0);

@@ -1,7 +1,7 @@
 package TestApp11;
 
 use Moose;
-extends 'Sanguine';
+extends 'Web::MooseCap';
 
 # Prevent output to STDOUT
 $ENV{CGI_APP_RETURN_ONLY} = 1;

@@ -15,12 +15,12 @@ sub	main::record_event {
 }
 
 
-BEGIN {	use_ok('Sanguine') };
+BEGIN {	use_ok('Web::MooseCap') };
 
 
 ######################################
 {
-	package	Sanguine::Plugin::Foo;
+	package	Web::MooseCap::Plugin::Foo;
 	use	vars qw/@EXPORT	@ISA/;
 	@ISA	   = ('Exporter');
 	@EXPORT	   = qw(
@@ -61,7 +61,7 @@ BEGIN {	use_ok('Sanguine') };
 }
 ######################################
 {
-	package	Sanguine::Plugin::Bar;
+	package	Web::MooseCap::Plugin::Bar;
 	use	vars qw/@EXPORT	@ISA/;
 	@ISA	   = ('Exporter');
 	@EXPORT	   = qw(
@@ -99,7 +99,7 @@ BEGIN {	use_ok('Sanguine') };
 }
 ######################################
 {
-	package	Sanguine::Plugin::Baz;
+	package	Web::MooseCap::Plugin::Baz;
 	use	vars qw/@EXPORT	@ISA/;
 	@ISA	   = ('Exporter');
 	@EXPORT	   = qw(
@@ -136,7 +136,7 @@ BEGIN {	use_ok('Sanguine') };
 }
 ######################################
 {
-	package	Sanguine::Plugin::Bam;
+	package	Web::MooseCap::Plugin::Bam;
 	use	vars qw/@EXPORT	@ISA/;
 	@ISA	   = ('Exporter');
 	@EXPORT	   = qw(
@@ -179,8 +179,8 @@ BEGIN {	use_ok('Sanguine') };
 	package	My::Framework;
     use vars qw/@ISA/;
 	##use Moose;
-	##extends 'Sanguine';
-    @ISA = ('Sanguine');
+	##extends 'Web::MooseCap';
+    @ISA = ('Web::MooseCap');
 	sub	cgiapp_init	   { main::record_event('init')       }
 	sub	cgiapp_prerun  { main::record_event('prerun')     }
 	sub	cgiapp_postrun { main::record_event('postrun')    }
@@ -192,14 +192,14 @@ BEGIN {	use_ok('Sanguine') };
 	package	My::Project;
     use vars qw/@ISA/;
 	@ISA = ('My::Framework');
-	import Sanguine::Plugin::Foo;
+	import Web::MooseCap::Plugin::Foo;
 
 	# install another init callback	for	all	users of My::Project
 	My::Project->add_callback('init',      'my_project_init');
 
-	# install an impolite callback that	will get run by	all	Sanguine apps
+	# install an impolite callback that	will get run by	all	Web::MooseCap apps
 	# regardless of	whether	or not they	use	My::Project
-	Sanguine->add_callback('init', \&my_project_global_init);
+	Web::MooseCap->add_callback('init', \&my_project_global_init);
 
 	sub	my_project_init	{ main::record_event('init')          }
 	sub	my_project_global_init { main::record_event('init')   }
@@ -211,15 +211,15 @@ BEGIN {	use_ok('Sanguine') };
 	package	Other::Project;
     use vars qw/@ISA/;
     @ISA = ('My::Framework');
-	import Sanguine::Plugin::Baz;
-	import Sanguine::Plugin::Bam;
+	import Web::MooseCap::Plugin::Baz;
+	import Web::MooseCap::Plugin::Bam;
 
 	# install another init callback	for	all	users of Other::Project
 	Other::Project->add_callback('init',      'other_project_init');
 
-	# install an impolite callback that	will get run by	all	Sanguine apps
+	# install an impolite callback that	will get run by	all	Web::MooseCap apps
 	# regardless of	whether	or not they	use	My::Project
-	Sanguine->add_callback('init', \&other_project_global_init);
+	Web::MooseCap->add_callback('init', \&other_project_global_init);
 
 	sub	other_project_init { main::record_event('init')          }
 	sub	other_project_global_init {	main::record_event('init')   }
@@ -231,7 +231,7 @@ BEGIN {	use_ok('Sanguine') };
 	package	My::App;
     use vars qw/@ISA/;
     @ISA = ('My::Project');
-	import Sanguine::Plugin::Bar;
+	import Web::MooseCap::Plugin::Bar;
 
 	sub	setup {
 		my $self = shift;
@@ -266,7 +266,7 @@ BEGIN {	use_ok('Sanguine') };
     use vars qw/@ISA/;
     @ISA = 'Other::Project';
 
-	import Sanguine::Plugin::Bam;
+	import Web::MooseCap::Plugin::Bam;
 
 	sub	setup {
 		my $self = shift;
@@ -293,7 +293,7 @@ BEGIN {	use_ok('Sanguine') };
 {
 	package	Unrelated::App;
     use vars qw/@ISA/;
-    @ISA = ('Sanguine');
+    @ISA = ('Web::MooseCap');
 
 	sub	setup {
 		my $self = shift;
@@ -322,53 +322,53 @@ $app->run;
 my @expected_events	= (
 	# init
 
-	'init/Sanguine::Plugin::Bar::bar_init1',        # CAP::Bar
-	'bar_hook/Sanguine::Plugin::Bar::bar_custom',
-	'init/Sanguine::Plugin::Bar::bar_init2',
+	'init/Web::MooseCap::Plugin::Bar::bar_init1',        # CAP::Bar
+	'bar_hook/Web::MooseCap::Plugin::Bar::bar_custom',
+	'init/Web::MooseCap::Plugin::Bar::bar_init2',
 
-	'init/Sanguine::Plugin::Foo::foo_init1',        # CAP::Foo
-	'init/Sanguine::Plugin::Foo::foo_init2',
+	'init/Web::MooseCap::Plugin::Foo::foo_init1',        # CAP::Foo
+	'init/Web::MooseCap::Plugin::Foo::foo_init2',
 
 
 	'init/My::Project::my_project_init',                   # My::Project
 
-	'init/My::App::cgiapp_init',                           # My::App (but installed via Sanguine)
+	'init/My::App::cgiapp_init',                           # My::App (but installed via Web::MooseCap)
 
 	'init/My::Project::my_project_global_init',            # My::Project (rudely) registered a callback in the
-														   # Sanguine class
+														   # Web::MooseCap class
 
 	'init/Other::Project::other_project_global_init',      # Other::Project (rudely) registered a callback in the
-														   # Sanguine class, which forces us to	run	it
+														   # Web::MooseCap class, which forces us to	run	it
 
 
 	# prerun
 
 	'prerun/My::App::my_app_obj_prerun',                   # My::App (installed in object)
 
-	'prerun/Sanguine::Plugin::Bar::bar_prerun',    # CAP::Foo
+	'prerun/Web::MooseCap::Plugin::Bar::bar_prerun',    # CAP::Foo
 
 	'prerun/My::App::my_app_class_prerun',                 # My::App (but installed at runtime)
 
-	'prerun/Sanguine::Plugin::Foo::foo_prerun',    # CAP::Bar
+	'prerun/Web::MooseCap::Plugin::Foo::foo_prerun',    # CAP::Bar
 
-	'prerun/My::App::cgiapp_prerun',                       # My::App (but installed via Sanguine)
+	'prerun/My::App::cgiapp_prerun',                       # My::App (but installed via Web::MooseCap)
 
 
 	# Run mode
 	'runmode/My::App::begin',                              # My::App
 
 	# postrun
-	'postrun/Sanguine::Plugin::Bar::bar_postrun',  # CAP::Bar
-	'postrun/Sanguine::Plugin::Foo::foo_postrun',  # CAP::Foo
-	'postrun/My::App::cgiapp_postrun',                     # My::App (but installed via Sanguine)
+	'postrun/Web::MooseCap::Plugin::Bar::bar_postrun',  # CAP::Bar
+	'postrun/Web::MooseCap::Plugin::Foo::foo_postrun',  # CAP::Foo
+	'postrun/My::App::cgiapp_postrun',                     # My::App (but installed via Web::MooseCap)
 
 	# teardown
 	'teardown/My::App::my_app_teardown',                   # My::App (but installed in object)
 
-	'teardown/Sanguine::Plugin::Bar::bar_teardown',  # CAP::Bar
-	'teardown/Sanguine::Plugin::Foo::foo_teardown',  # CAP::Foo
-	'foo_hook/Sanguine::Plugin::Foo::foo_custom',    # CAP::Foo
-	'teardown/My::App::teardown',                            # My::App (but installed via Sanguine)
+	'teardown/Web::MooseCap::Plugin::Bar::bar_teardown',  # CAP::Bar
+	'teardown/Web::MooseCap::Plugin::Foo::foo_teardown',  # CAP::Foo
+	'foo_hook/Web::MooseCap::Plugin::Foo::foo_custom',    # CAP::Foo
+	'teardown/My::App::teardown',                            # My::App (but installed via Web::MooseCap)
 
 );
 
@@ -390,53 +390,53 @@ My::App->new->run;
 @expected_events = (
 	# init
 
-	'init/Sanguine::Plugin::Bar::bar_init1',        # CAP::Bar
-	'bar_hook/Sanguine::Plugin::Bar::bar_custom',
-	'init/Sanguine::Plugin::Bar::bar_init2',
+	'init/Web::MooseCap::Plugin::Bar::bar_init1',        # CAP::Bar
+	'bar_hook/Web::MooseCap::Plugin::Bar::bar_custom',
+	'init/Web::MooseCap::Plugin::Bar::bar_init2',
 
-	'init/Sanguine::Plugin::Foo::foo_init1',        # CAP::Foo
-	'init/Sanguine::Plugin::Foo::foo_init2',
+	'init/Web::MooseCap::Plugin::Foo::foo_init1',        # CAP::Foo
+	'init/Web::MooseCap::Plugin::Foo::foo_init2',
 
 
 	'init/My::Project::my_project_init',                   # My::Project
 
-	'init/My::App::cgiapp_init',                           # My::App (but installed via Sanguine)
+	'init/My::App::cgiapp_init',                           # My::App (but installed via Web::MooseCap)
 
 	'init/My::Project::my_project_global_init',            # My::Project (rudely) registered a callback in the
-														   # Sanguine class
+														   # Web::MooseCap class
 
 	'init/Other::Project::other_project_global_init',      # Other::Project (rudely) registered a callback in the
-														   # Sanguine class, which forces us to	run	it
+														   # Web::MooseCap class, which forces us to	run	it
 
 
 	# prerun
 
 
-	'prerun/Sanguine::Plugin::Bar::bar_prerun',    # CAP::Foo
+	'prerun/Web::MooseCap::Plugin::Bar::bar_prerun',    # CAP::Foo
 
 	'prerun/My::App::my_app_class_prerun',                 # My::App (but installed at runtime)
 
 
-	'prerun/Sanguine::Plugin::Foo::foo_prerun',    # CAP::Bar
+	'prerun/Web::MooseCap::Plugin::Foo::foo_prerun',    # CAP::Bar
 
-	'prerun/My::App::cgiapp_prerun',                       # My::App (but installed via Sanguine)
+	'prerun/My::App::cgiapp_prerun',                       # My::App (but installed via Web::MooseCap)
 
 
 	# Run mode
 	'runmode/My::App::begin',                              # My::App
 
 	# postrun
-	'postrun/Sanguine::Plugin::Bar::bar_postrun',  # CAP::Bar
-	'postrun/Sanguine::Plugin::Foo::foo_postrun',  # CAP::Foo
-	'postrun/My::App::cgiapp_postrun',                     # My::App (but installed via Sanguine)
+	'postrun/Web::MooseCap::Plugin::Bar::bar_postrun',  # CAP::Bar
+	'postrun/Web::MooseCap::Plugin::Foo::foo_postrun',  # CAP::Foo
+	'postrun/My::App::cgiapp_postrun',                     # My::App (but installed via Web::MooseCap)
 
 	# teardown
 	'teardown/My::App::my_app_teardown',                   # My::App (but installed in object)
 
-	'teardown/Sanguine::Plugin::Bar::bar_teardown',  # CAP::Bar
-	'teardown/Sanguine::Plugin::Foo::foo_teardown',  # CAP::Foo
-	'foo_hook/Sanguine::Plugin::Foo::foo_custom',    # CAP::Foo
-	'teardown/My::App::teardown',                            # My::App (but installed via Sanguine)
+	'teardown/Web::MooseCap::Plugin::Bar::bar_teardown',  # CAP::Bar
+	'teardown/Web::MooseCap::Plugin::Foo::foo_teardown',  # CAP::Foo
+	'foo_hook/Web::MooseCap::Plugin::Foo::foo_custom',    # CAP::Foo
+	'teardown/My::App::teardown',                            # My::App (but installed via Web::MooseCap)
 
 );
 
@@ -464,35 +464,35 @@ Other::App->new->run;
 @expected_events = (
 	# init
 
-	'init/Sanguine::Plugin::Bam::bam_init1',        # CAP::Bam
-	'init/Sanguine::Plugin::Bam::bam_init2',
+	'init/Web::MooseCap::Plugin::Bam::bam_init1',        # CAP::Bam
+	'init/Web::MooseCap::Plugin::Bam::bam_init2',
 
-	'init/Sanguine::Plugin::Baz::baz_init1',        # CAP::Baz
-	'init/Sanguine::Plugin::Baz::baz_init2',
+	'init/Web::MooseCap::Plugin::Baz::baz_init1',        # CAP::Baz
+	'init/Web::MooseCap::Plugin::Baz::baz_init2',
 
 
 	'init/Other::Project::other_project_init',             # Other::Project
 
-	'init/Other::App::cgiapp_init',                        # Other::App (but installed via Sanguine)
+	'init/Other::App::cgiapp_init',                        # Other::App (but installed via Web::MooseCap)
 
 	'init/My::Project::my_project_global_init',            # My::Project (rudely) registered a callback in the
-														   # Sanguine class, which forces us to	run	it
+														   # Web::MooseCap class, which forces us to	run	it
 
 	'init/Other::Project::other_project_global_init',      # Other::Project (rudely) registered a callback in the
-														   # Sanguine class
+														   # Web::MooseCap class
 
 
 	# prerun
 
 
-	'prerun/Sanguine::Plugin::Bam::bam_prerun',    # CAP::Baz
+	'prerun/Web::MooseCap::Plugin::Bam::bam_prerun',    # CAP::Baz
 
-	'prerun/Sanguine::Plugin::Baz::baz_prerun',    # CAP::Bam
+	'prerun/Web::MooseCap::Plugin::Baz::baz_prerun',    # CAP::Bam
 
-	'baz_hook/Sanguine::Plugin::Baz::baz_custom',  # CAP::Bam
+	'baz_hook/Web::MooseCap::Plugin::Baz::baz_custom',  # CAP::Bam
 
 
-	'prerun/Other::App::cgiapp_prerun',                    # Other::App (but installed via Sanguine)
+	'prerun/Other::App::cgiapp_prerun',                    # Other::App (but installed via Web::MooseCap)
 
 
 	# Run mode
@@ -501,17 +501,17 @@ Other::App->new->run;
 	# postrun
 	'postrun/Other::App::other_app_postrun',               # Other::App (but installed in object)
 
-	'postrun/Sanguine::Plugin::Bam::bam_postrun',  # CAP::Bam
-	'bam_hook/Sanguine::Plugin::Bam::bam_custom',  # CAP::Bam
+	'postrun/Web::MooseCap::Plugin::Bam::bam_postrun',  # CAP::Bam
+	'bam_hook/Web::MooseCap::Plugin::Bam::bam_custom',  # CAP::Bam
 
 
-	'postrun/Sanguine::Plugin::Baz::baz_postrun',  # CAP::Baz
-	'postrun/Other::App::cgiapp_postrun',                  # Other::App (but installed via Sanguine)
+	'postrun/Web::MooseCap::Plugin::Baz::baz_postrun',  # CAP::Baz
+	'postrun/Other::App::cgiapp_postrun',                  # Other::App (but installed via Web::MooseCap)
 
 	# teardown
-	'teardown/Sanguine::Plugin::Bam::bam_teardown',  # CAP::Bam
-	'teardown/Sanguine::Plugin::Baz::baz_teardown',  # CAP::Baz
-	'teardown/Other::App::teardown',                         # Other::App (but installed via Sanguine)
+	'teardown/Web::MooseCap::Plugin::Bam::bam_teardown',  # CAP::Bam
+	'teardown/Web::MooseCap::Plugin::Baz::baz_teardown',  # CAP::Baz
+	'teardown/Other::App::teardown',                         # Other::App (but installed via Web::MooseCap)
 
 );
 
@@ -529,28 +529,28 @@ Unrelated::App->new->run;
 @expected_events = (
 	# init
 
-	'init/Unrelated::App::cgiapp_init',                    # Unrelated::App (but installed via Sanguine)
+	'init/Unrelated::App::cgiapp_init',                    # Unrelated::App (but installed via Web::MooseCap)
 
 	'init/My::Project::my_project_global_init',            # My::Project (rudely) registered a callback in the
-														   # Sanguine class, which forces us to	run	it
+														   # Web::MooseCap class, which forces us to	run	it
 
 	'init/Other::Project::other_project_global_init',      # Unrelated::Project (rudely) registered a callback in the
-														   # Sanguine class, which forces us to	run	it
+														   # Web::MooseCap class, which forces us to	run	it
 
 
 	# prerun
 
-	'prerun/Unrelated::App::cgiapp_prerun',                # Unrelated::App (but installed via Sanguine)
+	'prerun/Unrelated::App::cgiapp_prerun',                # Unrelated::App (but installed via Web::MooseCap)
 
 
 	# Run mode
 	'runmode/Unrelated::App::begin',                       # Unrelated::App
 
 	# postrun
-	'postrun/Unrelated::App::cgiapp_postrun',              # Unrelated::App (but installed via Sanguine)
+	'postrun/Unrelated::App::cgiapp_postrun',              # Unrelated::App (but installed via Web::MooseCap)
 
 	# teardown
-	'teardown/Unrelated::App::teardown',                   # Unrelated::App (but installed via Sanguine)
+	'teardown/Unrelated::App::teardown',                   # Unrelated::App (but installed via Web::MooseCap)
 
 );
 

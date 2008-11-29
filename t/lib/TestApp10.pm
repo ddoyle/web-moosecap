@@ -1,7 +1,7 @@
 package TestApp10;
 
 use Moose;
-extends 'Sanguine';
+extends 'Web::MooseCap';
 
 
 override 'setup' => sub {

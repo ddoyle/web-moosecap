@@ -11,7 +11,7 @@ $ENV{CGI_APP_RETURN_ONLY} = 1;
     package TestAppBasic;
 
     use Moose;
-    extends 'Sanguine';
+    extends 'Web::MooseCap';
 
     override 'setup' => sub {
         my $self = shift;

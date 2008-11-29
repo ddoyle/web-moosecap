@@ -2,7 +2,7 @@
 package TestApp;
 
 use Moose;
-extends 'Sanguine';
+extends 'Web::MooseCap';
 
 sub setup {
 	my $self = shift;

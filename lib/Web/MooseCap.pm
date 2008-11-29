@@ -1,4 +1,4 @@
-package Sanguine;
+package Web::MooseCap;
 
 use Moose;
 use Moose::Util::TypeConstraints;
@@ -20,18 +20,18 @@ our $AUTHORITY = 'cpan:DDOYLE';
 ############################################
 
 # the tmpl path subtype
-subtype 'Sanguine::tmpl_path'
+subtype 'Web::MooseCap::tmpl_path'
     => as 'ArrayRef'
     => where { ref $_ eq 'ARRAY' }
     => message { "Invalid tmpl_path specified ($_)" };
  
-coerce 'Sanguine::tmpl_path'
+coerce 'Web::MooseCap::tmpl_path'
     => from 'Str'   => via { [ $_ ] }
     => from 'Undef' => via { []     };
         
 # default template path includes
 has 'tmpl_path'
-    => ( is => 'rw', isa => 'Sanguine::tmpl_path', default => sub { [] }, coerce => 1, );
+    => ( is => 'rw', isa => 'Web::MooseCap::tmpl_path', default => sub { [] }, coerce => 1, );
 
 
 ###############################################
@@ -123,11 +123,11 @@ class_has '__CLASS_CALLBACKS' => (
     isa         => 'HashRef',
     default     => sub { return {
     #	hook name            package         sub
-        init            => { 'Sanguine' => [ 'cgiapp_init'       ] },
-        stash_init      => { 'Sanguine' => [ 'cgiapp_stash_init' ] },
-        prerun          => { 'Sanguine' => [ 'cgiapp_prerun'     ] },
-        postrun         => { 'Sanguine' => [ 'cgiapp_postrun'    ] },
-        teardown        => { 'Sanguine' => [ 'teardown'          ] },
+        init            => { 'Web::MooseCap' => [ 'cgiapp_init'       ] },
+        stash_init      => { 'Web::MooseCap' => [ 'cgiapp_stash_init' ] },
+        prerun          => { 'Web::MooseCap' => [ 'cgiapp_prerun'     ] },
+        postrun         => { 'Web::MooseCap' => [ 'cgiapp_postrun'    ] },
+        teardown        => { 'Web::MooseCap' => [ 'teardown'          ] },
         load_tmpl       => { },
         tt              => { }, # hook for adding to tt tmplvars and options
         error           => { },
@@ -465,7 +465,7 @@ sub mode_param {
 	# expecting hash style params
 	else {
         
-		confess "Sanguine->mode_param() : You gave me an odd number of parameters to mode_param()!"
+		confess "Web::MooseCap->mode_param() : You gave me an odd number of parameters to mode_param()!"
             unless ((@_ % 2) == 0);
 		%p = @_;
 		$mode_param = $p{param};
@@ -931,7 +931,7 @@ __END__
 
 =head1 NAME
 
-Sanguine - A Moose port of L<CGI::Application> - a framework for building
+Web::MooseCap - A Moose port of L<CGI::Application> - a framework for building
 reusable web-applications
 
 =head1 SYNOPSIS
@@ -939,7 +939,7 @@ reusable web-applications
   # In "WebApp.pm"...
   package WebApp;
   use Moose;
-  extends 'Sanguine';
+  extends 'Web::MooseCap';
 
   # override the base setup routine
   override 'setup' => {
@@ -965,7 +965,7 @@ reusable web-applications
 
 =head1 INTRODUCTION
 
-Sanguine: -adjective
+Web::MooseCap: -adjective
 
 =over 4
 
@@ -989,7 +989,7 @@ learn by rewriting it with Moose.  After talking with a few others, I thought
 perhaps I could give it an actual release and see if anyone wants to use/extend
 it.
 
-What Sanguine is NOT: a perfect drop-in replacement for CGI::Application.  Half
+What Web::MooseCap is NOT: a perfect drop-in replacement for CGI::Application.  Half
 the fun of writing this was figuring out how to do things a little different
 but maintain the familiarity of the CGI::Application workflow.
 
@@ -1034,9 +1034,9 @@ into the stash for every request.  By default, adds the query object
 Constructor parameters must all be lower case now.  For example, in a cgi
 instance script:
 
-  use SanguineWebApp;
+  use Web::MooseCapWebApp;
   
-  my $app = SanguineWebApp->new(
+  my $app = Web::MooseCapWebApp->new(
       QUERY     => CGI::Simple->new(),
       TMPL_PATH => [qw{
           /base/webapp/templates
@@ -1084,7 +1084,7 @@ Dave Doyle, C<< <dave.s.doyle@gmail.com> >>
 =head1 BUGS
 
 Please report any bugs or feature requests to
-C<bug-sanguine@rt.cpan.org>, or through the web interface at
+C<bug-Web::MooseCap@rt.cpan.org>, or through the web interface at
 L<http://rt.cpan.org>.  I will be notified, and then you'll automatically
 be notified of progress on your bug as I make changes.
 
