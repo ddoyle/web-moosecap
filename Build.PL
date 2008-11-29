@@ -3,12 +3,14 @@ use warnings;
 use Module::Build;
 
 my $builder = Module::Build->new(
-    module_name         => 'Sanguine',
+    module_name         => 'Web::MooseCap',
     license             => 'perl',
     dist_author         => 'Dave Doyle <dave.s.doyle@gmail.com>',
-    dist_version_from   => 'lib/Sanguine.pm',
+    dist_version_from   => 'lib/Web/MooseCap.pm',
     build_requires => {
         'Test::More'                => 0,
+    },
+    requires => {
         'Moose'                     => 0,
         'MooseX::AttributeHelpers'  => 0,
         'MooseX::ClassAttribute'    => 0,
@@ -19,7 +21,6 @@ my $builder = Module::Build->new(
         'Params::Validate'          => 0,
         'Template'                  => 0,
     },
-    add_to_cleanup      => [ 'Sanguine-*' ],
     create_makefile_pl => 'traditional',
 );
 

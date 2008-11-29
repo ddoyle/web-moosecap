@@ -30,31 +30,56 @@ coerce 'Web::MooseCap::tmpl_path'
     => from 'Undef' => via { []     };
         
 # default template path includes
-has 'tmpl_path'
-    => ( is => 'rw', isa => 'Web::MooseCap::tmpl_path', default => sub { [] }, coerce => 1, );
+has 'tmpl_path' => (
+    is      => 'rw',
+    isa     => 'Web::MooseCap::tmpl_path',
+    default => sub { [] },
+    coerce  => 1,
+);
 
 
 ###############################################
 # Simple Attributes
 
 # what header to send out (none is useful for running from command line)
-has 'header_type'
-    => ( is => 'rw', isa => enum([ qw/header redirect none/ ]), default => 'header', init_arg => undef, );
+has 'header_type' => (
+    is          => 'rw',
+    isa         => enum([ qw/header redirect none/ ]),
+    default     => 'header',
+    init_arg    => undef,
+);
 
 # start_mode - the default starting runmode for the app
-has 'start_mode'
-    => ( is => 'rw', isa => 'Str', default => 'start', init_arg => undef, );
+has 'start_mode' => (
+    is          => 'rw',
+    isa         => 'Str',
+    default     => 'start',
+    init_arg    => undef,
+);
 
 # the default HTML::Template type class used by load_tmpl
-has 'html_tmpl_class'
-    => ( is => 'rw', isa => 'Str', default => 'HTML::Template', init_arg => undef, );
+has 'html_tmpl_class' => (
+    is          => 'rw',
+    isa         => 'Str',
+    default     => 'HTML::Template',
+    init_arg    => undef,
+);
 
 # The query object, compatible with CGI/CGI::Simple
-has 'query'
-    => ( is => 'rw', isa => 'Object', lazy_build => 1, builder => 'cgiapp_get_query', );
+has 'query' => (
+    is          => 'rw',
+    isa         => 'Object',
+    lazy_build  => 1,
+    builder     => 'cgiapp_get_query',
+);
 
 # the name of the error mode
-has 'error_mode' => ( is => 'rw', isa=> 'Str', default => '', init_arg => undef, );
+has 'error_mode' => (
+    is          => 'rw',
+    isa         => 'Str',
+    default     => '',
+    init_arg    => undef,
+);
 
 # accessor/mutator for the getting/setting the runmode in cgiapp_prerun
 # trigger is to ensure you're only doing it while in cgiapp_prerun
@@ -712,9 +737,6 @@ sub _send_headers {
 	my $self = shift;
 	my $q    = $self->query;
 	my $type = $self->header_type;
-
-    #confess Dumper($self);
-    
 
     return
         $type eq 'redirect' ? $q->redirect( %{$self->__HEADER_PROPS} )
