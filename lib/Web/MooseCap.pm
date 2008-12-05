@@ -69,7 +69,7 @@ has 'html_tmpl_class' => (
 has 'query' => (
     is          => 'rw',
     isa         => 'Object',
-    lazy_build  => 1,
+    lazy        => 1,
     builder     => 'cgiapp_get_query',
 );
 
@@ -89,7 +89,7 @@ has 'prerun_mode' => (
     default     => '',
     trigger     => sub {
         confess("prerun_mode() can only be called within cgiapp_prerun()!  Error")
-            if $_[0]->__PRERUN_MODE_LOCKED();
+            if $_[0]->_prerun_mode_locked();
     }
 );
 
@@ -99,38 +99,54 @@ has 'prerun_mode' => (
 # PRIVATE ATTRIBUTES
 
 # this is to determine the mode param
-has '__MODE_PARAM'
-    => ( is => 'rw', isa => 'Any', default => 'rm', init_arg => undef, );
+has '_mode_param' => (
+    is          => 'rw',
+    isa         => 'Any',
+    default => 'rm',
+    init_arg => undef,
+);
 
 # cache item to remember callback classes checked so we don't have to do the
 # expensive $app_class->meta->class_precedence_list every time
-has '__SUPERCLASS_CACHE'
-    => ( is => 'rw', isa => 'ArrayRef[Str]', default => sub { [] }, init_arg => undef, );
+has '_superclass_cache' => (
+    is          => 'rw',
+    isa         => 'ArrayRef[Str]',
+    default     => sub { [] },
+    init_arg    => undef,
+);
 
 # the template extension when we're not given a filename to load_tmpl
-has '__CURRENT_TMPL_EXTENSION'
-    => ( is => 'rw', isa => 'Str', default => '.html', init_arg => undef, );
+has 'tmpl_extension' => (
+    is          => 'rw',
+    isa         => 'Str',
+    default     => '.html',
+);
 
-has '__PRERUN_MODE_LOCKED'
-    => ( is => 'rw', isa => 'Bool', default => 1, init_arg => undef, );
+has '_prerun_mode_locked' => (
+    is          => 'rw',
+    isa         => 'Bool',
+    default     => 1,
+    init_arg    => undef,
+);
 
 # stores/sets the current runmode
-has '__CURRENT_RUNMODE' => (
+has '_current_runmode' => (
     isa         => 'Str',
     reader      => 'get_current_runmode',  # public
     writer      => '_set_current_runmode', # private
+    init_arg    => undef,
 );
 
 # headers to output for a request
-has '__HEADER_PROPS' => (
+has '_header_props' => (
     metaclass   => 'Collection::Hash',
     is          => 'rw',
     isa         => 'HashRef',
     default     => sub { +{} },
     provides    => {
-        clear   => '__HEADER_PROPS_clear',
-        set     => '__HEADER_PROPS_set',
-        get     => '__HEADER_PROPS_get',
+        clear   => '_header_props_clear',
+        set     => '_header_props_set',
+        get     => '_header_props_get',
     },
 );
 
@@ -138,12 +154,15 @@ has '__HEADER_PROPS' => (
 # callback related attribs
 
 # list of installed callbacks on the instance
-has '__INSTANCE_CALLBACKS'
-    => ( is => 'rw', isa => 'HashRef', default => sub { +{} }, );
+has '_instance_callbacks' => (
+    is          => 'rw',
+    isa         => 'HashRef',
+    default     => sub { +{} },
+);
 
 
 # base list of callback hooks for the class
-class_has '__CLASS_CALLBACKS' => (
+class_has '_class_callbacks' => (
     is          => 'rw',
     isa         => 'HashRef',
     default     => sub { return {
@@ -521,7 +540,7 @@ sub mode_param {
 	}
 
 	# If data is provided, set it
-    $self->__MODE_PARAM( $mode_param )
+    $self->_mode_param( $mode_param )
         if defined $mode_param
             && (
                     ref $mode_param eq 'CODE'
@@ -529,7 +548,7 @@ sub mode_param {
                  || length $mode_param
             );
         
-	return $self->__MODE_PARAM();
+	return $self->_mode_param();
 }
 
 # meat of the work done here
@@ -549,7 +568,7 @@ sub run {
     $self->call_hook('stash_init');
 
 	# Allow prerun_mode to be changed
-    $self->__PRERUN_MODE_LOCKED(0);
+    $self->_prerun_mode_locked(0);
 
 	# Call PRE-RUN hook, now that we know the run mode
 	# This hook can be used to provide run mode specific behaviors
@@ -557,7 +576,7 @@ sub run {
  	$self->call_hook('prerun', $rm);
 
 	# Lock prerun_mode from being changed after cgiapp_prerun()
-    $self->__PRERUN_MODE_LOCKED(1);
+    $self->_prerun_mode_locked(1);
 
 	# If prerun_mode has been set, use it!
 	my $prerun_mode = $self->prerun_mode();
@@ -680,7 +699,12 @@ sub _header_props_update {
 	my $self     = shift;
 	my $data_ref = shift;
     my ($meth)    = validate_pos( @_,
-        {type => SCALAR, regex => qr/^(add|set|props)$/, optional => 1, default => 'add' }, # add by default
+        {
+            type        => SCALAR,
+            regex       => qr/^(add|set|props)$/,
+            optional    => 1,
+            default     => 'add' # add by default
+        }, 
     );
 
 	my @data = @$data_ref;
@@ -707,25 +731,25 @@ sub _header_props_update {
             
             # iterate through array ref items and save existing values
 			for my $key_set_to_aref (grep { ref $props->{$_} eq 'ARRAY'} keys %$props) {
-				my $existing_val = $self->__HEADER_PROPS_get($key_set_to_aref); # save the existing val
+				my $existing_val = $self->_header_props_get($key_set_to_aref); # save the existing val
 				next unless defined $existing_val; 
 				my @existing_val_array = (ref $existing_val eq 'ARRAY') ? @$existing_val : ($existing_val);
 				$props->{$key_set_to_aref} = [ @existing_val_array, @{ $props->{$key_set_to_aref} } ];
 			}
-			$self->__HEADER_PROPS_set( %$props ); # put new values in with presevered arrays
+			$self->_header_props_set( %$props ); # put new values in with presevered arrays
 		}
         elsif ( $meth eq 'set' ) {
-            $self->__HEADER_PROPS_set(%$props);
+            $self->_header_props_set(%$props);
         }
 		# Set new headers, clobbering existing values
 		elsif ($meth eq 'props' ) {
-			$self->__HEADER_PROPS($props);
+			$self->_header_props($props);
 		}
 
 	}
 
 	# If we've gotten this far, return the value!
-	return (%{ $self->__HEADER_PROPS()});
+	return (%{ $self->_header_props()});
 }
 
 ###########################
@@ -739,8 +763,8 @@ sub _send_headers {
 	my $type = $self->header_type;
 
     return
-        $type eq 'redirect' ? $q->redirect( %{$self->__HEADER_PROPS} )
-      : $type eq 'header'   ? $q->header  ( %{$self->__HEADER_PROPS} )
+        $type eq 'redirect' ? $q->redirect( %{$self->_header_props} )
+      : $type eq 'header'   ? $q->header  ( %{$self->_header_props} )
       : $type eq 'none'     ? ''
       : confess "Invalid header_type '$type'"
 }
@@ -770,7 +794,7 @@ sub load_tmpl {
 
 
     # Define a default template name based on the current run mode
-    $tmpl_file = $self->get_current_runmode . $self->__CURRENT_TMPL_EXTENSION
+    $tmpl_file = $self->get_current_runmode . $self->tmpl_extension
         unless defined $tmpl_file;
 
     $self->call_hook('load_tmpl', \%ht_params, \%tmpl_params, $tmpl_file);
@@ -808,19 +832,19 @@ sub add_callback {
                          : (undef, $self_or_class);
 
     	die "Unknown hook ($hook)"
-            unless exists $class->__CLASS_CALLBACKS()->{$hook};
+            unless exists $class->_class_callbacks()->{$hook};
                          
     # if $self, add it only to this instance's callback list
 	if ( $self ) {
 		# Install in object
-        $self->__INSTANCE_CALLBACKS()->{$hook} = []
-            unless $self->__INSTANCE_CALLBACKS()->{$hook};
-		push @{ $self->__INSTANCE_CALLBACKS()->{$hook} }, $callback;
+        $self->_instance_callbacks()->{$hook} = []
+            unless $self->_instance_callbacks()->{$hook};
+		push @{ $self->_instance_callbacks()->{$hook} }, $callback;
 	}
     # add to the class callback
 	else {
 		# Install in class
-		push @{ $class->__CLASS_CALLBACKS()->{$hook}{$class} }, $callback;
+		push @{ $class->_class_callbacks()->{$hook}{$class} }, $callback;
 	}
 
 }
@@ -830,8 +854,8 @@ sub add_callback {
 sub new_hook {
 	my ($class, $hook) = @_;
     # install new hook in the class
-    $class->__CLASS_CALLBACKS()->{$hook} = {}
-        unless exists $class->__CLASS_CALLBACKS()->{$hook};
+    $class->_class_callbacks()->{$hook} = {}
+        unless exists $class->_class_callbacks()->{$hook};
 	return 1;
 }
 
@@ -845,13 +869,13 @@ sub call_hook {
 
     # check if hook exists
     confess "Unknown hook ($hook)"
-        unless exists $app_class->__CLASS_CALLBACKS()->{$hook};
+        unless exists $app_class->_class_callbacks()->{$hook};
 
 	my %executed_callback;
 
 	# First, run callbacks installed in the object
-    my @instance_callbacks =  defined $self->__INSTANCE_CALLBACKS()->{$hook}
-                           ? @{ $self->__INSTANCE_CALLBACKS()->{$hook} }
+    my @instance_callbacks =  defined $self->_instance_callbacks()->{$hook}
+                           ? @{ $self->_instance_callbacks()->{$hook} }
                            : ()
                            ;
 	foreach my $callback ( @instance_callbacks ) {
@@ -863,19 +887,19 @@ sub call_hook {
 
 	# Next, run callbacks installed in class hierarchy
 	# Cache this value as a performance boost
-    if ( scalar @{$self->__SUPERCLASS_CACHE()} == 0 ) {
+    if ( scalar @{$self->_superclass_cache()} == 0 ) {
         my @cb_classes = ($app_class->meta->class_precedence_list);
-        $self->__SUPERCLASS_CACHE( \@cb_classes );
+        $self->_superclass_cache( \@cb_classes );
     }
 
 	# Get list of classes that the current app inherits from
-	foreach my $class (@{ $self->__SUPERCLASS_CACHE }) {
+	foreach my $class (@{ $self->_superclass_cache }) {
 
 		# skip those classes that contain no callbacks
-		next unless exists $self->__CLASS_CALLBACKS()->{$hook}{$class};
+		next unless exists $self->_class_callbacks()->{$hook}{$class};
 
         my @callbacks
-            = @{ $self->__CLASS_CALLBACKS()->{$hook}{$class} };
+            = @{ $self->_class_callbacks()->{$hook}{$class} };
 
 		# call all of the callbacks in the class
 		foreach my $callback (@callbacks) {
@@ -1093,7 +1117,7 @@ you should do:
 
 I'll discuss this is more detail later.
 
-=item 6.
+=item 7.
 
 New hooks, C<tt> and C<stash_init>
 
