@@ -1,9 +1,6 @@
-Sanguine
+Web::MooseCap
 
-The README is used to introduce the module and provide instructions on
-how to install the module, any machine dependencies it may have (for
-example C compilers and installed libraries) and any other information
-that should be provided before the module is installed.
+This module is pure Perl but some of it's dependancies may not be.
 
 A README file is required for CPAN modules since CPAN extracts the README
 file from a module distribution so that people browsing the archive
@@ -26,22 +23,27 @@ SUPPORT AND DOCUMENTATION
 After installing, you can find documentation for this module with the
 perldoc command.
 
-    perldoc Sanguine
+    perldoc Web::MooseCap
 
 You can also look for information at:
 
     RT, CPAN's request tracker
-        http://rt.cpan.org/NoAuth/Bugs.html?Dist=Sanguine
+        http://rt.cpan.org/NoAuth/Bugs.html?Dist=Web::MooseCap
 
     AnnoCPAN, Annotated CPAN documentation
-        http://annocpan.org/dist/Sanguine
+        http://annocpan.org/dist/Web::MooseCap
 
     CPAN Ratings
-        http://cpanratings.perl.org/d/Sanguine
+        http://cpanratings.perl.org/d/Web::MooseCap
 
     Search CPAN
-        http://search.cpan.org/dist/Sanguine
+        http://search.cpan.org/dist/Web::MooseCap
 
+    GitHub Repo
+	    http://github.com/ddoyle/web-moosecap/tree/master
+		
+    Git public clone url
+        git://github.com/ddoyle/web-moosecap.git
 
 COPYRIGHT AND LICENCE
 
