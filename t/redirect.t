@@ -1,5 +1,4 @@
-use Test::More tests => 8;
-BEGIN { use_ok('CGI::Application::Plugin::Redirect') }
+use Test::More tests => 7;
 
 use lib './t';
 use strict;

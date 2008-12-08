@@ -2,12 +2,12 @@
 use strict;
 use Test::More tests => 6;
 
-BEGIN{use_ok('CGI::Application');}
+BEGIN{use_ok('Web::MooseCap');}
 
 $ENV{CGI_APP_RETURN_ONLY} = 1;
 
 {
-  my $app = CGI::Application->new;
+  my $app = Web::MooseCap->new;
 
   $app->header_type('none');
 
@@ -25,7 +25,7 @@ $ENV{CGI_APP_RETURN_ONLY} = 1;
 }
 
 {
-  my $app = CGI::Application->new;
+  my $app = Web::MooseCap->new;
 
   eval { $app->header_props(123); };
 
@@ -45,7 +45,7 @@ $ENV{CGI_APP_RETURN_ONLY} = 1;
 }
 
 {
-  my $app = CGI::Application->new;
+  my $app = Web::MooseCap->new;
 
   $app->header_props({ -type => 'banana/ripe' });
   $app->header_add({ -expires => '1d' });

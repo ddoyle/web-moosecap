@@ -38,6 +38,6 @@ t/lib/TestApp9.pm
 t/lib/TestApp10.pm
 t/lib/TestApp11.pm
 t/lib/TestApp12.pm
-t/lib/TestAppCGI.pm
+t/lib/TestCGI.pm
 t/lib/templates/test.html
 t/lib/templates/test.tmpl

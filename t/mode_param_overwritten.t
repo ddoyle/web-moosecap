@@ -2,7 +2,8 @@
 # didn't work if it was set in a sub-class. 
 
 package My::CA;
-use base 'CGI::Application';
+use Moose;
+extends 'Web::MooseCap';
 
 sub cgiapp_init {
     my $self = shift;

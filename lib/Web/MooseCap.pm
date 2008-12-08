@@ -11,7 +11,7 @@ use Class::MOP;
 use Clone qw(clone);
 use Data::Dumper;
 use Params::Validate qw(SCALAR HASHREF ARRAYREF validate validate_pos);
-use Template;
+#use Template;
 
 our $VERSION   = '0.01';
 our $AUTHORITY = 'cpan:DDOYLE';
@@ -199,23 +199,12 @@ sub param {
     
     # if they want the list of keys ...
     return keys %{$self->params}  if scalar @_ == 0;
-    
-    # set via hashref
-    if ( ref $_[0] eq 'HASH' ) {
-        $self->params->{$_} = $_[0]->{$_} foreach keys %{$_[0]};
-        return;
-    }
-    
+
     # if they want to fetch a particular key ...
-    return $self->params->{$_[0]} if scalar @_ == 1;
-   
-    ((scalar @_ % 2) == 0)
-        || confess "parameter assignment must be an even numbered list";
-    
-    my %new = @_;
-    while (my ($key, $value) = each %new) {
-        $self->params->{$key} = $value;
-    }
+    return $self->params->{$_[0]} if scalar @_ == 1 && ref $_[0] ne 'HASH';
+
+    # merge data in
+    $self->merge_into($self->params, @_ );
 
     # if we're setting exactly one param, return it
     return scalar @_ == 2 ? $_[1] : undef;
@@ -224,8 +213,11 @@ sub param {
 
 ###################
 # the stash
-has '_stash'
-    => ( is => 'rw', isa => 'HashRef', default => sub { +{} }, );
+has '_stash' => (
+    is          => 'rw',
+    isa         => 'HashRef',
+    default     => sub { +{} },
+);
 
 # stash is reset before cgiapp_prerun
 sub stash {
@@ -235,22 +227,10 @@ sub stash {
     # if they want the hashref
     return $self->_stash() if scalar @_ == 0;
 
-    # set via hashref
-    if ( ref $_[0] eq 'HASH' ) {
-        $self->_stash->{$_} = $_[0]->{$_} foreach keys %{$_[0]};
-        return;
-    }
-    
     # if they want to fetch a particular key ...
-    return $self->_stash->{$_[0]} if scalar @_ == 1;
+    return $self->_stash->{$_[0]} if scalar @_ == 1 && ref $_[0] ne 'HASH' ;
    
-    ((scalar @_ % 2) == 0)
-        || confess "parameter assignment must be an even numbered list";
-    
-    my %new = @_;
-    while (my ($key, $value) = each %new) {
-        $self->_stash->{$key} = $value;
-    }
+    $self->merge_into($self->_stash, @_ );
 
     return;
 }
@@ -266,6 +246,67 @@ sub cgiapp_stash_init {
 
 #######################
 # tt with stash integration
+
+sub merge_into {
+    my $self = shift;
+    my $hash = shift || {};
+    
+    confess "must pass a hashref" unless ref $hash eq 'HASH';
+    
+    if (ref $_[0] eq 'HASH') {
+        $hash->{$_} = $_[0]->{$_} foreach keys %{$_[0]};
+        return $hash;
+    }
+    
+    confess "parameter assignment must be an even numbered list" unless
+        ((scalar @_ % 2) == 0 );
+    
+    my %new = @_;
+    
+    while( my ($key, $value) = each %new ) {
+        $hash->{$key} = $value;
+    }
+    
+    return $hash;
+    
+}
+
+
+has '__tt' => (
+    is          => 'rw',
+    isa         => 'Template',
+    lazy        => 1,
+    builder     => '__tt_build',
+);
+
+
+# tt builder
+sub tt_options {
+    my $self = shift;
+    
+    my $hash = {
+        POST_CHOMP => 1,
+        template_extension => $self->tmpl_extension,
+    };
+    
+    $hash->{INCLUDE_PATH} = $self->tmpl_path if scalar @{ $self->tmpl_path };
+
+    # merge any args so we can do an 'arround' method modifier later
+    $self->merge_into( $hash, @_ );
+
+    return $hash;
+}
+
+sub __tt_build {
+    my $self = shift;
+    
+    require Template;
+    return Template->new($self->tt_options)
+        || confess 'Failed to create template';
+}
+
+
+
 sub tt {
     my $self = shift;
     
@@ -279,44 +320,23 @@ sub tt {
                         
     # generate the data to populate the template with
     # this includes the stash and any user provided tmpl_params
-    my $params = {};
-    $params->{$_} = $self->stash($_)  foreach keys %{$self->stash()};
-    $params->{$_} = $args{params}{$_} foreach keys %{$args{params}};
+    my $params = $self->merge_into( {}, $self->stash() );
+    $self->merge_into($params, $args{params});
     
-    # generate the options for the template object
-    # start with the tt_options method return, add the INCLUDE_PATH using
-    # the tmpl_path attribute if populated, then include user defined options
-    my $options = $self->tt_options();
-    $options->{INCLUDE_PATH} = $self->tmpl_path()
-        if scalar @{$self->tmpl_path()};
-        
-    $options->{$_} = $args{options}{$_}
-        foreach keys %{$args{options}};
-
     # tmpl may be a scallarref containing the template
     #             a scalar with the name of the file to load (less the template ext)
     my $tmpl = $args{tmpl};
 
     # call the hook so you can further modify the tt_params, tmpl_params and
     # the template itself
-    $self->call_hook('tt', \$tmpl, $params, $options);
+    $self->call_hook('tt', \$tmpl, $params );
 
-    my $template = Template->new($options);
-    
     my $html = '';
-    $template->process( $tmpl, $params, \$html );
+    $self->__tt->process( $tmpl, $params, \$html, $args{options} );
     
-    return \$html
+    return \$html; # return ref for efficiancy
 }
 
-# default tt_options
-sub tt_options {
-    my $self = shift;
-    return {
-        POST_CHOMP          => 1,
-        template_extension  => '.html',
-    };
-}
 
 ######################
 # Runmode attribute + getter/setter

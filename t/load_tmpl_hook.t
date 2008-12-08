@@ -2,10 +2,10 @@
 
 use Test::More tests => 5;
 
-use CGI::Application;
+use Web::MooseCap;
 
 $ENV{CGI_APP_RETURN_ONLY} = 1;
-my $app = CGI::Application->new();
+my $app = Web::MooseCap->new();
 my $out = $app->run;
 
 like($out, qr/start/, "normal app output contains start");
