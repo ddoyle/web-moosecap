@@ -40,3 +40,5 @@ t/lib/TestApp12.pm
 t/lib/TestCGI.pm
 t/lib/templates/test.html
 t/lib/templates/test.tmpl
+Makefile.PL
+META.yml

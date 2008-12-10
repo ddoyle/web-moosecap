@@ -1,0 +1,30 @@
+---
+name: Web-MooseCap
+version: 0.01
+author:
+  - 'Dave Doyle <dave.s.doyle@gmail.com>'
+abstract: |-
+  A Moose port of L<CGI::Application> - a framework for building
+  reusable web-applications
+license: perl
+resources:
+  license: http://dev.perl.org/licenses/
+requires:
+  Class::MOP: 0
+  Clone: 0
+  Data::Dumper: 0
+  Moose: 0
+  MooseX::AttributeHelpers: 0
+  MooseX::ClassAttribute: 0
+  Params::Validate: 0
+  Template: 0
+  Test::More: 0.47
+  metaclass: 0
+provides:
+  Web::MooseCap:
+    file: lib/Web/MooseCap.pm
+    version: 0.01
+generated_by: Module::Build version 0.3
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.2.html
+  version: 1.2

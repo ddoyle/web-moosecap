@@ -279,9 +279,16 @@ has '__tt' => (
     builder     => '__tt_build',
 );
 
+has '__tt_config' => (
+    is          => 'rw',
+    isa         => 'HashRef',
+    lazy        => 1,
+    builder     => 'tt_config',
+);
+
 
 # tt builder
-sub tt_options {
+sub tt_config {
     my $self = shift;
     
     my $hash = {
@@ -301,7 +308,7 @@ sub __tt_build {
     my $self = shift;
     
     require Template;
-    return Template->new($self->tt_options)
+    return Template->new($self->tt_config)
         || confess 'Failed to create template';
 }
 
