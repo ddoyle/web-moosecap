@@ -4,6 +4,7 @@ use Moose;
 use Moose::Util::TypeConstraints;
 use MooseX::AttributeHelpers;
 use MooseX::ClassAttribute;
+use MooseX::MultiInitArg;
 
 use metaclass;
 
@@ -31,10 +32,12 @@ coerce 'Web::MooseCap::tmpl_path'
         
 # default template path includes
 has 'tmpl_path' => (
-    is      => 'rw',
-    isa     => 'Web::MooseCap::tmpl_path',
-    default => sub { [] },
-    coerce  => 1,
+    metaclass   => 'MultiInitArg',
+    is          => 'rw',
+    isa         => 'Web::MooseCap::tmpl_path',
+    default     => sub { [] },
+    coerce      => 1,
+    init_args   => [qw/TMPL_PATH/],
 );
 
 
@@ -67,10 +70,12 @@ has 'html_tmpl_class' => (
 
 # The query object, compatible with CGI/CGI::Simple
 has 'query' => (
+    metaclass   => 'MultiInitArg',
     is          => 'rw',
     isa         => 'Object',
     lazy        => 1,
     builder     => 'cgiapp_get_query',
+    init_args   => [qw/QUERY/],
 );
 
 # the name of the error mode
@@ -132,8 +137,8 @@ has '__prerun_mode_locked' => (
 # stores/sets the current runmode
 has '__current_runmode' => (
     isa         => 'Str',
-    reader      => 'get__current_runmode',  # public
-    writer      => '_set__current_runmode', # private
+    reader      => 'get_current_runmode',  # public
+    writer      => '_set_current_runmode', # private
     init_arg    => undef,
 );
 
@@ -154,7 +159,7 @@ has '__header_props' => (
 # callback related attribs
 
 # list of installed callbacks on the instance
-has '_instance_callbacks' => (
+has '__instance_callbacks' => (
     is          => 'rw',
     isa         => 'HashRef',
     default     => sub { +{} },
@@ -162,7 +167,7 @@ has '_instance_callbacks' => (
 
 
 # base list of callback hooks for the class
-class_has '_class_callbacks' => (
+class_has '__class_callbacks' => (
     is          => 'rw',
     isa         => 'HashRef',
     default     => sub { return {
@@ -188,9 +193,15 @@ has 'params' => (
     isa         => 'HashRef',
     lazy_build  => 1,
     builder     => 'init_params',
-    metaclass   => 'Collection::Hash',
-    provides    => { delete  => 'delete', }, # del-a-key-from-param-hash method
+    metaclass   => 'MultiInitArg',
+    init_args   => [qw/PARAMS/],
 );
+
+sub delete {
+    my $self = shift;
+    return unless defined $_[0];
+    return delete $self->params->{$_[0]};
+}
 
 sub init_params { +{} }
 
@@ -320,7 +331,7 @@ sub tt {
     my @args = @_;
     @args = ( 'tmpl' => $args[0] ) if scalar(@args) == 1;
     my %args = validate(@args,{
-        tmpl    => {                  default => $self->get__current_runmode() },
+        tmpl    => {                  default => $self->get_current_runmode() },
         params  => { type => HASHREF, default => {}                           },
         options => { type => HASHREF, default => {}                           },
     });
@@ -406,7 +417,7 @@ sub forward {
     my $method = $rm_map->{$run_mode};
 
     if ($self->can($method) || ref $method eq 'CODE') {
-        $self->_set__current_runmode( $run_mode );
+        $self->_set_current_runmode( $run_mode );
         $self->call_hook('forward_prerun');
         return $self->$method(@_);
     }
@@ -587,8 +598,8 @@ sub run {
 
 	my $rm = $self->__get_runmode($rm_param);
 
-	# Set get__current_runmode() for access by user later
-    $self->_set__current_runmode($rm);
+	# Set get_current_runmode() for access by user later
+    $self->_set_current_runmode($rm);
 
     # reset the stash
     $self->_stash({});
@@ -609,7 +620,7 @@ sub run {
 	my $prerun_mode = $self->prerun_mode();
 	if (length($prerun_mode)) {
 		$rm = $prerun_mode;
-        $self->_set__current_runmode($rm);
+        $self->_set_current_runmode($rm);
 	}
 
 	# Process run mode!
@@ -821,7 +832,7 @@ sub load_tmpl {
 
 
     # Define a default template name based on the current run mode
-    $tmpl_file = $self->get__current_runmode . $self->tmpl_extension
+    $tmpl_file = $self->get_current_runmode . $self->tmpl_extension
         unless defined $tmpl_file;
 
     $self->call_hook('load_tmpl', \%ht_params, \%tmpl_params, $tmpl_file);
@@ -859,19 +870,19 @@ sub add_callback {
                          : (undef, $self_or_class);
 
     	die "Unknown hook ($hook)"
-            unless exists $class->_class_callbacks()->{$hook};
+            unless exists $class->__class_callbacks()->{$hook};
                          
     # if $self, add it only to this instance's callback list
 	if ( $self ) {
 		# Install in object
-        $self->_instance_callbacks()->{$hook} = []
-            unless $self->_instance_callbacks()->{$hook};
-		push @{ $self->_instance_callbacks()->{$hook} }, $callback;
+        $self->__instance_callbacks()->{$hook} = []
+            unless $self->__instance_callbacks()->{$hook};
+		push @{ $self->__instance_callbacks()->{$hook} }, $callback;
 	}
     # add to the class callback
 	else {
 		# Install in class
-		push @{ $class->_class_callbacks()->{$hook}{$class} }, $callback;
+		push @{ $class->__class_callbacks()->{$hook}{$class} }, $callback;
 	}
 
 }
@@ -881,8 +892,8 @@ sub add_callback {
 sub new_hook {
 	my ($class, $hook) = @_;
     # install new hook in the class
-    $class->_class_callbacks()->{$hook} = {}
-        unless exists $class->_class_callbacks()->{$hook};
+    $class->__class_callbacks()->{$hook} = {}
+        unless exists $class->__class_callbacks()->{$hook};
 	return 1;
 }
 
@@ -896,13 +907,13 @@ sub call_hook {
 
     # check if hook exists
     confess "Unknown hook ($hook)"
-        unless exists $app_class->_class_callbacks()->{$hook};
+        unless exists $app_class->__class_callbacks()->{$hook};
 
 	my %executed_callback;
 
 	# First, run callbacks installed in the object
-    my @instance_callbacks =  defined $self->_instance_callbacks()->{$hook}
-                           ? @{ $self->_instance_callbacks()->{$hook} }
+    my @instance_callbacks =  defined $self->__instance_callbacks()->{$hook}
+                           ? @{ $self->__instance_callbacks()->{$hook} }
                            : ()
                            ;
 	foreach my $callback ( @instance_callbacks ) {
@@ -923,10 +934,10 @@ sub call_hook {
 	foreach my $class (@{ $self->__superclass_cache }) {
 
 		# skip those classes that contain no callbacks
-		next unless exists $self->_class_callbacks()->{$hook}{$class};
+		next unless exists $self->__class_callbacks()->{$hook}{$class};
 
         my @callbacks
-            = @{ $self->_class_callbacks()->{$hook}{$class} };
+            = @{ $self->__class_callbacks()->{$hook}{$class} };
 
 		# call all of the callbacks in the class
 		foreach my $callback (@callbacks) {
@@ -944,7 +955,7 @@ sub dump {
 	my $output = '';
 
 	# Dump run mode
-	my $current_runmode = $c->get__current_runmode();
+	my $current_runmode = $c->get_current_runmode();
 	$current_runmode = "" unless (defined($current_runmode));
 	$output .= "Current Run mode: '$current_runmode'\n";
 
@@ -973,7 +984,7 @@ sub dump_html {
 	my $output = '';
 
 	# Dump run-mode
-	my $current_runmode = $c->get__current_runmode();
+	my $current_runmode = $c->get_current_runmode();
 	$output .= "<p>Current Run-mode: '<strong>$current_runmode</strong>'</p>\n";
 
 	# Dump Params
