@@ -89,7 +89,7 @@ has 'prerun_mode' => (
     default     => '',
     trigger     => sub {
         confess("prerun_mode() can only be called within cgiapp_prerun()!  Error")
-            if $_[0]->_prerun_mode_locked();
+            if $_[0]->__prerun_mode_locked();
     }
 );
 
@@ -99,7 +99,7 @@ has 'prerun_mode' => (
 # PRIVATE ATTRIBUTES
 
 # this is to determine the mode param
-has '_mode_param' => (
+has '__mode_param' => (
     is          => 'rw',
     isa         => 'Any',
     default => 'rm',
@@ -108,7 +108,7 @@ has '_mode_param' => (
 
 # cache item to remember callback classes checked so we don't have to do the
 # expensive $app_class->meta->class_precedence_list every time
-has '_superclass_cache' => (
+has '__superclass_cache' => (
     is          => 'rw',
     isa         => 'ArrayRef[Str]',
     default     => sub { [] },
@@ -122,7 +122,7 @@ has 'tmpl_extension' => (
     default     => '.html',
 );
 
-has '_prerun_mode_locked' => (
+has '__prerun_mode_locked' => (
     is          => 'rw',
     isa         => 'Bool',
     default     => 1,
@@ -130,23 +130,23 @@ has '_prerun_mode_locked' => (
 );
 
 # stores/sets the current runmode
-has '_current_runmode' => (
+has '__current_runmode' => (
     isa         => 'Str',
-    reader      => 'get_current_runmode',  # public
-    writer      => '_set_current_runmode', # private
+    reader      => 'get__current_runmode',  # public
+    writer      => '_set__current_runmode', # private
     init_arg    => undef,
 );
 
 # headers to output for a request
-has '_header_props' => (
+has '__header_props' => (
     metaclass   => 'Collection::Hash',
     is          => 'rw',
     isa         => 'HashRef',
     default     => sub { +{} },
     provides    => {
-        clear   => '_header_props_clear',
-        set     => '_header_props_set',
-        get     => '_header_props_get',
+        clear   => '__header_props_clear',
+        set     => '__header_props_set',
+        get     => '__header_props_get',
     },
 );
 
@@ -320,7 +320,7 @@ sub tt {
     my @args = @_;
     @args = ( 'tmpl' => $args[0] ) if scalar(@args) == 1;
     my %args = validate(@args,{
-        tmpl    => {                  default => $self->get_current_runmode() },
+        tmpl    => {                  default => $self->get__current_runmode() },
         params  => { type => HASHREF, default => {}                           },
         options => { type => HASHREF, default => {}                           },
     });
@@ -406,7 +406,7 @@ sub forward {
     my $method = $rm_map->{$run_mode};
 
     if ($self->can($method) || ref $method eq 'CODE') {
-        $self->_set_current_runmode( $run_mode );
+        $self->_set__current_runmode( $run_mode );
         $self->call_hook('forward_prerun');
         return $self->$method(@_);
     }
@@ -567,7 +567,7 @@ sub mode_param {
 	}
 
 	# If data is provided, set it
-    $self->_mode_param( $mode_param )
+    $self->__mode_param( $mode_param )
         if defined $mode_param
             && (
                     ref $mode_param eq 'CODE'
@@ -575,7 +575,7 @@ sub mode_param {
                  || length $mode_param
             );
         
-	return $self->_mode_param();
+	return $self->__mode_param();
 }
 
 # meat of the work done here
@@ -587,15 +587,15 @@ sub run {
 
 	my $rm = $self->__get_runmode($rm_param);
 
-	# Set get_current_runmode() for access by user later
-    $self->_set_current_runmode($rm);
+	# Set get__current_runmode() for access by user later
+    $self->_set__current_runmode($rm);
 
     # reset the stash
     $self->_stash({});
     $self->call_hook('stash_init');
 
 	# Allow prerun_mode to be changed
-    $self->_prerun_mode_locked(0);
+    $self->__prerun_mode_locked(0);
 
 	# Call PRE-RUN hook, now that we know the run mode
 	# This hook can be used to provide run mode specific behaviors
@@ -603,13 +603,13 @@ sub run {
  	$self->call_hook('prerun', $rm);
 
 	# Lock prerun_mode from being changed after cgiapp_prerun()
-    $self->_prerun_mode_locked(1);
+    $self->__prerun_mode_locked(1);
 
 	# If prerun_mode has been set, use it!
 	my $prerun_mode = $self->prerun_mode();
 	if (length($prerun_mode)) {
 		$rm = $prerun_mode;
-        $self->_set_current_runmode($rm);
+        $self->_set__current_runmode($rm);
 	}
 
 	# Process run mode!
@@ -706,23 +706,23 @@ sub teardown {
 # add header, preserving previous
 sub header_add {
 	my $self = shift;
-	return $self->_header_props_update(\@_,'add');
+	return $self->__header_props_update(\@_,'add');
 }
 
 # add headers, clobbering previous
 sub header_set {
 	my $self = shift;
-	return $self->_header_props_update(\@_,'set');
+	return $self->__header_props_update(\@_,'set');
 }
 
 # clobber all previous headers
 sub header_props {
 	my $self = shift;
-	return $self->_header_props_update(\@_,'props');
+	return $self->__header_props_update(\@_,'props');
 }
 
 # used by header_props and header_add to update the headers
-sub _header_props_update {
+sub __header_props_update {
 	my $self     = shift;
 	my $data_ref = shift;
     my ($meth)    = validate_pos( @_,
@@ -758,25 +758,25 @@ sub _header_props_update {
             
             # iterate through array ref items and save existing values
 			for my $key_set_to_aref (grep { ref $props->{$_} eq 'ARRAY'} keys %$props) {
-				my $existing_val = $self->_header_props_get($key_set_to_aref); # save the existing val
+				my $existing_val = $self->__header_props_get($key_set_to_aref); # save the existing val
 				next unless defined $existing_val; 
 				my @existing_val_array = (ref $existing_val eq 'ARRAY') ? @$existing_val : ($existing_val);
 				$props->{$key_set_to_aref} = [ @existing_val_array, @{ $props->{$key_set_to_aref} } ];
 			}
-			$self->_header_props_set( %$props ); # put new values in with presevered arrays
+			$self->__header_props_set( %$props ); # put new values in with presevered arrays
 		}
         elsif ( $meth eq 'set' ) {
-            $self->_header_props_set(%$props);
+            $self->__header_props_set(%$props);
         }
 		# Set new headers, clobbering existing values
 		elsif ($meth eq 'props' ) {
-			$self->_header_props($props);
+			$self->__header_props($props);
 		}
 
 	}
 
 	# If we've gotten this far, return the value!
-	return (%{ $self->_header_props()});
+	return (%{ $self->__header_props()});
 }
 
 ###########################
@@ -790,8 +790,8 @@ sub _send_headers {
 	my $type = $self->header_type;
 
     return
-        $type eq 'redirect' ? $q->redirect( %{$self->_header_props} )
-      : $type eq 'header'   ? $q->header  ( %{$self->_header_props} )
+        $type eq 'redirect' ? $q->redirect( %{$self->__header_props} )
+      : $type eq 'header'   ? $q->header  ( %{$self->__header_props} )
       : $type eq 'none'     ? ''
       : confess "Invalid header_type '$type'"
 }
@@ -821,7 +821,7 @@ sub load_tmpl {
 
 
     # Define a default template name based on the current run mode
-    $tmpl_file = $self->get_current_runmode . $self->tmpl_extension
+    $tmpl_file = $self->get__current_runmode . $self->tmpl_extension
         unless defined $tmpl_file;
 
     $self->call_hook('load_tmpl', \%ht_params, \%tmpl_params, $tmpl_file);
@@ -914,13 +914,13 @@ sub call_hook {
 
 	# Next, run callbacks installed in class hierarchy
 	# Cache this value as a performance boost
-    if ( scalar @{$self->_superclass_cache()} == 0 ) {
+    if ( scalar @{$self->__superclass_cache()} == 0 ) {
         my @cb_classes = ($app_class->meta->class_precedence_list);
-        $self->_superclass_cache( \@cb_classes );
+        $self->__superclass_cache( \@cb_classes );
     }
 
 	# Get list of classes that the current app inherits from
-	foreach my $class (@{ $self->_superclass_cache }) {
+	foreach my $class (@{ $self->__superclass_cache }) {
 
 		# skip those classes that contain no callbacks
 		next unless exists $self->_class_callbacks()->{$hook}{$class};
@@ -944,7 +944,7 @@ sub dump {
 	my $output = '';
 
 	# Dump run mode
-	my $current_runmode = $c->get_current_runmode();
+	my $current_runmode = $c->get__current_runmode();
 	$current_runmode = "" unless (defined($current_runmode));
 	$output .= "Current Run mode: '$current_runmode'\n";
 
@@ -973,7 +973,7 @@ sub dump_html {
 	my $output = '';
 
 	# Dump run-mode
-	my $current_runmode = $c->get_current_runmode();
+	my $current_runmode = $c->get__current_runmode();
 	$output .= "<p>Current Run-mode: '<strong>$current_runmode</strong>'</p>\n";
 
 	# Dump Params
