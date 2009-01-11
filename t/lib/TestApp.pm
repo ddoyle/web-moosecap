@@ -3,6 +3,7 @@ package TestApp;
 
 use Moose;
 extends 'Web::MooseCap';
+with 'Web::MooseCap::Plugin::HT';
 
 sub setup {
 	my $self = shift;
