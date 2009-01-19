@@ -222,26 +222,27 @@ sub cgiapp_stash_init {
 # tt with stash integration
 
 sub merge_into {
-    my $self = shift;
-    my $hash = shift || {};
+    my $self      = shift;
+    my $base_hash = shift || {};
     
-    confess "must pass a hashref" unless ref $hash eq 'HASH';
+    confess "must pass a hashref" unless ref $base_hash eq 'HASH';
     
+    # if we're given a hashref to start, use it
     if (ref $_[0] eq 'HASH') {
-        $hash->{$_} = $_[0]->{$_} foreach keys %{$_[0]};
-        return $hash;
+        $base_hash->{$_} = $_[0]->{$_} foreach keys %{$_[0]};
+        return $base_hash;
     }
     
+    # else it's an even number paramlist
     confess "parameter assignment must be an even numbered list" unless
         ((scalar @_ % 2) == 0 );
     
     my %new = @_;
-    
     while( my ($key, $value) = each %new ) {
-        $hash->{$key} = $value;
+        $base_hash->{$key} = $base_hash;
     }
     
-    return $hash;
+    return $base_hash;
     
 }
 

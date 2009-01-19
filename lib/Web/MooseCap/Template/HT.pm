@@ -1,4 +1,4 @@
-package Web::MooseCap::Plugin::HT;
+package Web::MooseCap::Template::HT;
 
 use Moose::Role;
 

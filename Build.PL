@@ -11,6 +11,7 @@ my $builder = Module::Build->new(
         'Moose'                     => 0,
         'MooseX::AttributeHelpers'  => 0,
         'MooseX::ClassAttribute'    => 0,
+        'MooseX::MultiInitArg'      => 0,
         'metaclass'                 => 0,
         'Class::MOP'                => 0,
         'Clone'                     => 0,
