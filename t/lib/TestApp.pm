@@ -117,7 +117,7 @@ sub tmpl_badparam_test {
 sub tt_test {
 	my $self = shift;
 	
-	$self->tt(tmpl => 'test.html', params => {ping => 'Hello World: tt_test'});
+	$self->tt_process('test.html', {ping => 'Hello World: tt_test'});
 }
 
 
