@@ -1,11 +1,12 @@
 #!/usr/bin/perl
 
+use lib 't/lib';
 use Test::More tests => 5;
 
-use Web::MooseCap;
+use TestAppHT;
 
 $ENV{CGI_APP_RETURN_ONLY} = 1;
-my $app = Web::MooseCap->new();
+my $app = TestAppHT->new();
 my $out = $app->run;
 
 like($out, qr/start/, "normal app output contains start");
