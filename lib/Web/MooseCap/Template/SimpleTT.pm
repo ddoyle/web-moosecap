@@ -9,9 +9,6 @@ use Scalar::Util ();
 our $VERSION   = '0.01';
 our $AUTHORITY = 'cpan:DDOYLE';
 
-
-requires qw/extend/;
-
 has '__TT_OPTIONS' => (
     is          => 'rw',
     isa         => 'HashRef',
@@ -120,7 +117,8 @@ sub tt_process {
     # Add c => $self in as a param for convenient access to sessions and such
     $params{c} ||= $self;
 
-    $self->tt_obj->process($file, \%params, \$html) || croak $self->tt_obj->error();
+    $self->__TT_OBJECT->process($file, \%params, \$html)
+        || confess $self->__TT_OBJECT->error();
 
     return \$html;
 }
