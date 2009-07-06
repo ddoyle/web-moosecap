@@ -178,7 +178,7 @@ sub param {
     return $self->params->{$_[0]} if scalar @_ == 1 && ref $_[0] ne 'HASH';
 
     # merge data in
-    $self->merge_into($self->params, @_ );
+    $self->extend($self->params, @_ );
 
     # if we're setting exactly one param, return it
     return scalar @_ == 2 ? $_[1] : undef;
@@ -204,7 +204,7 @@ sub stash {
     # if they want to fetch a particular key ...
     return $self->_stash->{$_[0]} if scalar @_ == 1 && ref $_[0] ne 'HASH' ;
    
-    $self->merge_into($self->_stash, @_ );
+    $self->extend($self->_stash, @_ );
 
     return;
 }
@@ -221,7 +221,7 @@ sub cgiapp_stash_init {
 #######################
 # tt with stash integration
 
-sub merge_into {
+sub extend {
     my $self      = shift;
     my $base_hash = shift || {};
     
@@ -274,7 +274,7 @@ sub tt_config {
     $hash->{INCLUDE_PATH} = $self->tmpl_path if scalar @{ $self->tmpl_path };
 
     # merge any args so we can do an 'arround' method modifier later
-    $self->merge_into( $hash, @_ );
+    $self->extend( $hash, @_ );
 
     return $hash;
 }
@@ -302,8 +302,8 @@ sub tt {
                         
     # generate the data to populate the template with
     # this includes the stash and any user provided tmpl_params
-    my $params = $self->merge_into( {}, $self->stash() );
-    $self->merge_into($params, $args{params});
+    my $params = $self->extend( {}, $self->stash() );
+    $self->extend($params, $args{params});
     
     # tmpl may be a scallarref containing the template
     #             a scalar with the name of the file to load (less the template ext)
