@@ -4,6 +4,7 @@ package TestApp;
 use Moose;
 extends 'Web::MooseCap';
 with 'Web::MooseCap::Template::HT';
+with 'Web::MooseCap::Template::SimpleTT';
 
 sub setup {
 	my $self = shift;
@@ -183,5 +184,5 @@ sub header_add_after_header_props {
     return 1;
 }
 
-1;
+__PACKAGE__->meta->make_immutable; no Moose; 1;
 

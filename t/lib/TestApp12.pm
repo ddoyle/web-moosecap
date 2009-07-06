@@ -24,4 +24,4 @@ sub error {
     die "Oops!\n";
 }
 
-1;
+__PACKAGE__->meta->make_immutable; no Moose; 1;
