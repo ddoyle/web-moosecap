@@ -1,4 +1,3 @@
-
 package TestApp6;
 
 use Moose;
@@ -28,17 +27,17 @@ override 'setup' => sub {
 };
 
 
-sub cgiapp_prerun {
+override 'cgiapp_prerun' => sub {
 	my $self = shift;
 	my $rm = shift;
 
-	$self->prerun_mode($rm);
+	$self->param('PRERUN_RUNMODE', $rm);
 
 	if ($self->get_current_runmode() eq 'prerun_mode_test') {
 		# Override the current run mode
 		$self->prerun_mode('new_prerun_mode_test');
 	}
-}
+};
 
 
 
