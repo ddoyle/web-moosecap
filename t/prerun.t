@@ -22,7 +22,7 @@ $ENV{CGI_APP_RETURN_ONLY} = 1;
 	like($output, qr/Hello\ World\:\ prerun\_test\ OK/);
 
 	# Did the cgiapp_prerun work?
-	is($ta_obj->prerun_mode, 'prerun_test');
+	is($ta_obj->param('PRERUN_RUNMODE'), 'prerun_test');
 
 	# get_current_runmode() working?
 	is($ta_obj->get_current_runmode(), 'prerun_test');
