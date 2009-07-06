@@ -7,6 +7,8 @@ BEGIN{use_ok('Web::MooseCap');}
 # Need CGI.pm for tests
 use CGI;
 
+use Data::Dumper;
+
 # bring in testing hierarchy
 use lib 't/lib';
 use TestApp;
@@ -131,14 +133,14 @@ sub response_like {
 # run() Web::MooseCap sub-class, in run mode 'tmpl_test'. 
 # Expect HTTP header + 'Hello World: tmpl_test'.
 {
-	my $app = TestApp->new(tmpl_path=>'t/lib/templates/');
+	my $app = TestApp->new(tt_options => { INCLUDE_PATH =>=>'t/lib/templates/'});
 	$app->query(CGI->new({'test_rm' => 'tt_test'}));
 
 	response_like(
 		$app,
 		qr{^Content-Type: text/html},
 		qr/---->Hello World: tt_test<----/,
-		"TestApp, tmpl_test",
+		"TestApp, tt_test",
 	);
 }
 
@@ -531,7 +533,7 @@ sub response_like {
 
 ###
 
-my $t27_ta_obj = Web::MooseCap->new(
+my $t27_ta_obj =TestApp->new(
 	tmpl_path => [qw(t/lib/templates /some/other/test/path)]
 );
 my ($t1, $t2) = (0,0);
