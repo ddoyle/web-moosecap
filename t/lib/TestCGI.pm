@@ -1,6 +1,6 @@
 package TestCGI;
 
-use CGI;
+use CGI::Simple;
 use CGI::Carp;
 
 sub new {
@@ -8,7 +8,7 @@ sub new {
 	my $self = {};
 	bless($self, $pkg);
 
-	my $q = CGI->new();
+	my $q = CGI::Simple->new();
 	$self->{CGI} = $q;
 
 	# Set test value
@@ -45,6 +45,6 @@ sub param {
 }
 
 
-__PACKAGE__->meta->make_immutable; no Moose; 1;
+1;
 
 
