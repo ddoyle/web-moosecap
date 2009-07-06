@@ -10,13 +10,13 @@ our $VERSION   = '0.01';
 our $AUTHORITY = 'cpan:DDOYLE';
 
 
-requires qw/merge_into/;
+requires qw/extend/;
 
 has '__TT_OPTIONS' => (
     is          => 'rw',
     isa         => 'HashRef',
-    init_arg    => undef,
-    bulder      => 'tt_default_options',
+    builder     => 'tt_options',
+    init_arg    => 'tt_options',
     lazy        => 1,
 );
 
@@ -25,98 +25,30 @@ has '__TT_OBJECT' => (
     isa         => 'Template',
     init_arg    => undef,
     predicate   => 'has_tt',
-    builder     => '__BUILD_TT_OBJECT',
+    builder     => 'tt_build_object',
     lazy        => 1,
 );
 
-has '__TT_NAME_GEN' => (
-    
+has '__TT_PARAMS' => (
+    is          => 'rw',
+    isa         => 'HashRef',
+    init_arg    => undef,
+    default     => sub { +{} },
+    lazy        => 1,
 );
 
-
 # overridable default options
-sub tt_config_default { return {}; }
+# overriding this to add INCLUDE_PATH is generally a good idea
+sub tt_options { return { POST_CHOMP => 1}; }
 
-sub __BUILD_TT_OBJECT {
+# you can override this completely if you want
+sub tt_build_object {
     my $self = shift;
-    
-    my $tt_options = $self->__TT__CONFIG()->{TEMPLATE_OPTIONS};
-    
-    my $tt = Template->new
+    return Template->new($self->__TT_OPTIONS);
 }
 
-##############################################
-###
-###   tt_obj
-###
-##############################################
-#
-# Get a Template Toolkit object.  The same object
-# will be returned everytime this method is called
-# during a request cycle.
-#
-sub tt_obj {
-    my $self = shift;
 
-    my ($tt, $options, $frompkg) = _get_object_or_options($self);
-
-    if (!$tt) {
-        my $tt_options = $options->{TEMPLATE_OPTIONS};
-        if (keys %{$options->{TEMPLATE_OPTIONS}}) {
-          $tt = Template->new( $options->{TEMPLATE_OPTIONS} ) || confess "Can't load Template";
-        } else {
-          $tt = Template->new || confess "Can't load Template";
-        }
-        _set_object($frompkg||$self, $tt);
-    }
-    return $tt;
-}
-
-##############################################
-###
-###   tt_config
-###
-##############################################
-#
-# Configure the Template Toolkit object
-#
-sub tt_config {
-    my $self = shift;
-
-    # can't call config if we've already created teh TT instance
-    die "Calling tt_config after the tt object has already been created"
-        if @_ && $self->has_tt;
-        
-    if (@_) {
-      
-        # arguements to hash      
-        my $props = $self->merge_into({}, @_);
-      
-        my %options;
-      
-        # Check for TEMPLATE_OPTIONS
-        if ($props->{TEMPLATE_OPTIONS}) {
-            confess "tt_config error:  parameter TEMPLATE_OPTIONS is not a hash reference"
-                if ref $props->{TEMPLATE_OPTIONS} ne 'HASH';
-                
-            $self->merge_into($self->__TT_OPTIONS(), delete $props->{TEMPLATE_OPTIONS});
-        }
-        
-        # Check for TEMPLATE_NAME_GENERATOR
-        if ($props->{TEMPLATE_NAME_GENERATOR}) {
-            confess "tt_config error:  parameter TEMPLATE_NAME_GENERATOR is not a subroutine reference"
-            if Scalar::Util::reftype($props->{TEMPLATE_NAME_GENERATOR}) ne 'CODE';
-            $tt_config->{TEMPLATE_NAME_GENERATOR} = delete $props->{TEMPLATE_NAME_GENERATOR};
-        }
-        
-        # If there are still entries left in $props then they are invalid
-        confess "Invalid option(s) (".join(', ', keys %$props).") passed to tt_config" if %$props;
-    }
-
-    $tt_config;
-}
-
-##############################################
+#############################################
 ###
 ###   tt_params
 ###
@@ -130,11 +62,8 @@ sub tt_params {
     my $self = shift;
     my @data = @_;
 
-    # Define the params stash if it doesn't exist
-    $self->{__TT_PARAMS} ||= {};
-
     if (@data) {
-        my $params    = $self->{__TT_PARAMS};
+        my $params    = $self->__TT_PARAMS;
         my $newparams = {};
         if (ref $data[0] eq 'HASH') {
             # hashref
@@ -149,7 +78,7 @@ sub tt_params {
         @$params{keys %$newparams} = values %$newparams;
     }
 
-    return $self->{__TT_PARAMS};
+    return $self->__TT_PARAMS;
 }
 
 ##############################################
@@ -164,56 +93,11 @@ sub tt_params {
 sub tt_clear_params {
     my $self = shift;
 
-    my $params = $self->{__TT_PARAMS};
-    $self->{__TT_PARAMS} = {};
+    my $params = $self->__TT_PARAMS;
+    $self->__TT_PARAMS( +{} );
 
+    # return the old params
     return $params;
-}
-
-##############################################
-###
-###   tt_pre_process
-###
-##############################################
-#
-# Sample method that is called just before
-# a Template is processed.
-# Useful for setting global template params.
-# It is passed the template filename and the hashref
-# of template data
-#
-sub tt_pre_process {
-    my $self = shift;
-    my $file = shift;
-    my $vars = shift;
-
-    # Do your pre-processing here
-}
-
-##############################################
-###
-###   tt_post_process
-###
-##############################################
-#
-# Sample method that is called just after
-# a Template is processed.
-# Useful for post processing the HTML.
-# It is passed a scalar reference to the HTML code.
-#
-# Note:  This could also be accomplished using the
-#        cgiapp_postrun method, except that this
-#        method is called after every template is
-#        processed (you could process multiple
-#        templates in one request), whereas
-#        cgiapp_postrun is only called once after
-#        the runmode has completed.
-#
-sub tt_post_process {
-    my $self    = shift;
-    my $htmlref = shift;
-
-    # Do your post-processing here
 }
 
 ##############################################
@@ -231,42 +115,12 @@ sub tt_process {
     my $vars = shift;
     my $html = '';
 
-    my $can_call_hook = UNIVERSAL::can($self, 'call_hook') ? 1 : 0;
-
-    if (! defined($vars) && (Scalar::Util::reftype($file)||'') eq 'HASH') {
-        $vars = $file;
-        $file = undef;
-    }
-    $file ||= $self->tt_template_name(1);
-    $vars ||= {};
-    my $template_name = $file;
-
-    # Call the load_tmpl hook that is part of CGI::Application
-    $self->call_hook(
-        'load_tmpl',
-        {}, # template options are ignored
-        $vars,
-        $file,
-    ) if $can_call_hook;
-
-    # Call tt_pre_process hook
-    $self->tt_pre_process($file, $vars) if $self->can('tt_pre_process');
-    $self->call_hook('tt_pre_process', $file, $vars) if $can_call_hook;
-
-    # Include any parameters that may have been
-    # set with tt_params
-    my %params = ( %{ $self->tt_params() }, %$vars );
-
+    # mergin in any params
+    my %params = ( %{ $self->__TT_PARAMS }, %$vars );
     # Add c => $self in as a param for convenient access to sessions and such
     $params{c} ||= $self;
 
     $self->tt_obj->process($file, \%params, \$html) || croak $self->tt_obj->error();
-
-    # Call tt_post_process hook
-    $self->tt_post_process(\$html) if $self->can('tt_post_process');
-    $self->call_hook('tt_post_process', \$html) if $can_call_hook;
-
-    _tt_add_devpopup_info($self, $template_name, \%params);
 
     return \$html;
 }
@@ -283,136 +137,8 @@ sub tt_process {
 sub tt_include_path {
     my $self = shift;
 
-    return $self->tt_obj->context->load_templates->[0]->include_path unless(@_);
-    $self->tt_obj->context->load_templates->[0]->include_path(ref($_[0]) ? $_[0] : [@_]);
-
-    return;
-}
-
-##############################################
-###
-###   tt_template_name
-###
-##############################################
-#
-# Auto-generate the filename of a template based on
-# the current module, and the name of the 
-# function that called us.
-#
-sub tt_template_name {
-    my $self = shift;
-
-    my ($tt, $options, $frompkg) = _get_object_or_options($self);
-
-    my $func = $options->{TEMPLATE_NAME_GENERATOR} || \&__tt_template_name;
-    return $self->$func(@_);
-}
-
-##############################################
-###
-###   __tt_template_name
-###
-##############################################
-#
-# Generate the filename of a template based on
-# the current module, and the name of the 
-# function that called us.
-#
-# example:
-#   module $self is blessed into:  My::Module
-#   function name that called us:  my_function
-#
-#   generates:  My/Module/my_function.tmpl
-#
-sub __tt_template_name {
-    my $self    = shift;
-    my $uplevel = shift || 0;
-
-    # the directory is based on the object's package name
-    my $dir = File::Spec->catdir(split(/::/, ref($self)));
-
-    # the filename is the method name of the caller plus
-    # whatever offset the user asked for
-    (caller(2+$uplevel))[3] =~ /([^:]+)$/;
-    my $name = $1;
-
-    return File::Spec->catfile($dir, $name.'.tmpl');
-}
-
-##
-## Private methods
-##
-sub _set_object {
-    my $self = shift;
-    my $tt  = shift;
-    my $class = ref $self ? ref $self : $self;
-
-    if (ref $self) {
-        $self->{__TT_OBJECT} = $tt;
-    } else {
-        no strict 'refs';
-        ${$class.'::__TT_OBJECT'} = $tt;
-    }
-}
-
-sub _get_object_or_options {
-    my $self = shift;
-    my $class = ref $self ? ref $self : $self;
-
-    # Handle the simple case by looking in the object first
-    if (ref $self) {
-        return ($self->{__TT_OBJECT}, $self->{__TT_CONFIG}) if $self->{__TT_OBJECT};
-        return (undef, $self->{__TT_CONFIG}) if $self->{__TT_CONFIG};
-    }
-
-    # See if we can find them in the class hierarchy
-    #  We look at each of the modules in the @ISA tree, and
-    #  their parents as well until we find either a tt
-    #  object or a set of configuration parameters
-    require Class::ISA;
-    foreach my $super ($class, Class::ISA::super_path($class)) {
-        no strict 'refs';
-        return (${$super.'::__TT_OBJECT'}, ${$super.'::__TT_CONFIG'}, $super) if ${$super.'::__TT_OBJECT'};
-        return (undef, ${$super.'::__TT_CONFIG'}, $super) if ${$super.'::__TT_CONFIG'};
-    }
-    return;
-}
-
-##############################################
-###
-###   _tt_add_devpopup_info
-###
-##############################################
-#
-# This method will look to see if the devpopup
-# plugin is being used, and will display all the
-# parameters that were passed to the template.
-#
-sub _tt_add_devpopup_info {
-    my $self = shift;
-    my $name = shift;
-    my $params = shift;
-
-    return unless UNIVERSAL::can($self, 'devpopup');
-
-    my %params = %$params;
-    foreach my $key (keys %params) {
-        if (my $class = Scalar::Util::blessed($params{$key})) {
-            $params{$key} = "Object:$class";
-        }
-    }
-
-    require Data::Dumper;
-    my $dumper = Data::Dumper->new([\%params]);
-    $dumper->Varname('Params');
-    $dumper->Indent(2);
-    my $dump = $dumper->Dump();
-
-    $self->devpopup->add_report(
-        title   => "TT params for $name",
-        summary => "All template parameters passed to template $name",
-        report  => qq{<div style="font-size: 80%"><pre>$dump</pre></div>},
-    );
+    return $self->__TT_OBJECT->context->load_templates->[0]->include_path unless(@_);
+    $self->__TT_OBJECT->context->load_templates->[0]->include_path(ref($_[0]) ? $_[0] : [@_]);
 
     return;
 }
