@@ -36,7 +36,7 @@ has 'start_mode' => (
     init_arg    => undef,
 );
 
-# The query object, compatible with CGI/CGI::Simple
+# The query object, compatible with CGI/CGI::Simple etc
 has 'query' => (
     metaclass   => 'MultiInitArg',
     is          => 'rw',
@@ -178,7 +178,7 @@ sub param {
     return $self->params->{$_[0]} if scalar @_ == 1 && ref $_[0] ne 'HASH';
 
     # merge data in
-    $self->extend($self->params, @_ );
+    $self->merge_into($self->params, @_ );
 
     # if we're setting exactly one param, return it
     return scalar @_ == 2 ? $_[1] : undef;
@@ -204,7 +204,7 @@ sub stash {
     # if they want to fetch a particular key ...
     return $self->_stash->{$_[0]} if scalar @_ == 1 && ref $_[0] ne 'HASH' ;
    
-    $self->extend($self->_stash, @_ );
+    $self->merge_into($self->_stash, @_ );
 
     return;
 }
@@ -221,7 +221,7 @@ sub cgiapp_stash_init {
 #######################
 # tt with stash integration
 
-sub extend {
+sub merge_into {
     my $self      = shift;
     my $base_hash = shift || {};
     
@@ -239,86 +239,12 @@ sub extend {
     
     my %new = @_;
     while( my ($key, $value) = each %new ) {
-        $base_hash->{$key} = $base_hash;
+        $base_hash->{$key} = $value;
     }
     
     return $base_hash;
     
 }
-
-
-has '__tt' => (
-    is          => 'rw',
-    isa         => 'Template',
-    lazy        => 1,
-    builder     => '__tt_build',
-);
-
-has '__tt_config' => (
-    is          => 'rw',
-    isa         => 'HashRef',
-    lazy        => 1,
-    builder     => 'tt_config',
-);
-
-
-# tt builder
-sub tt_config {
-    my $self = shift;
-    
-    my $hash = {
-        POST_CHOMP => 1,
-        template_extension => $self->tmpl_extension,
-    };
-    
-    $hash->{INCLUDE_PATH} = $self->tmpl_path if scalar @{ $self->tmpl_path };
-
-    # merge any args so we can do an 'arround' method modifier later
-    $self->extend( $hash, @_ );
-
-    return $hash;
-}
-
-sub __tt_build {
-    my $self = shift;
-    
-    require Template;
-    return Template->new($self->tt_config)
-        || confess 'Failed to create template';
-}
-
-
-
-sub tt {
-    my $self = shift;
-    
-    my @args = @_;
-    @args = ( 'tmpl' => $args[0] ) if scalar(@args) == 1;
-    my %args = validate(@args,{
-        tmpl    => {                  default => $self->get_current_runmode() },
-        params  => { type => HASHREF, default => {}                           },
-        options => { type => HASHREF, default => {}                           },
-    });
-                        
-    # generate the data to populate the template with
-    # this includes the stash and any user provided tmpl_params
-    my $params = $self->extend( {}, $self->stash() );
-    $self->extend($params, $args{params});
-    
-    # tmpl may be a scallarref containing the template
-    #             a scalar with the name of the file to load (less the template ext)
-    my $tmpl = $args{tmpl};
-
-    # call the hook so you can further modify the tt_params, tmpl_params and
-    # the template itself
-    $self->call_hook('tt', \$tmpl, $params );
-
-    my $html = '';
-    $self->__tt->process( $tmpl, $params, \$html, $args{options} );
-    
-    return \$html; # return ref for efficiancy
-}
-
 
 ######################
 # Runmode attribute + getter/setter
@@ -577,15 +503,15 @@ sub run {
 	# before the run mode actually runs.
  	$self->call_hook('prerun', $rm);
 
-	# Lock prerun_mode from being changed after cgiapp_prerun()
-    $self->__prerun_mode_locked(1);
-
 	# If prerun_mode has been set, use it!
 	my $prerun_mode = $self->prerun_mode();
 	if (length($prerun_mode)) {
 		$rm = $prerun_mode;
         $self->_set_current_runmode($rm);
 	}
+
+	# Lock prerun_mode from being changed after cgiapp_prerun()
+    $self->__prerun_mode_locked(1);
 
 	# Process run mode!
 	my $body = $self->__get_body($rm);
