@@ -47,8 +47,7 @@ has 'query' => (
 );
 
 # the name of the error mode
-has 'error_mode' => (
-    is          => 'rw',
+has 'error_mode' => ( is => 'rw',
     isa         => 'Str',
     default     => '',
     init_arg    => undef,
@@ -134,7 +133,7 @@ class_has '__class_callbacks' => (
     is          => 'rw',
     isa         => 'HashRef',
     default     => sub { return {
-    #	hook name            package         sub
+    #    hook name            package         sub
         init            => { 'Web::MooseCap' => [ 'cgiapp_init'       ] },
         stash_init      => { 'Web::MooseCap' => [ 'cgiapp_stash_init' ] },
         prerun          => { 'Web::MooseCap' => [ 'cgiapp_prerun'     ] },
@@ -256,8 +255,8 @@ has '_run_modes' => (
 );
 
 sub run_modes {
-	my $self = shift;
-	my (@data) = (@_);
+    my $self = shift;
+    my (@data) = (@_);
 
     # return the hashref if no args
     return $self->_run_modes() unless scalar @data;
@@ -270,23 +269,23 @@ sub run_modes {
     }
     $self->_run_modes({%{$self->_run_modes()}, @data});
 
-	# If we've gotten this far, return the value!
-	return $self->_run_modes(); 
+    # If we've gotten this far, return the value!
+    return $self->_run_modes(); 
 }
 
 ###############################################
 # the builder/constructor
 sub BUILD {
-	my ($self, $params) = @_;
+    my ($self, $params) = @_;
 
     
-	# Call cgiapp_init() method, which may be implemented in the sub-class.
-	# Pass all constructor args forward.  This will allow flexible usage
-	# down the line.
-	$self->call_hook('init', (%{$params}));
+    # Call cgiapp_init() method, which may be implemented in the sub-class.
+    # Pass all constructor args forward.  This will allow flexible usage
+    # down the line.
+    $self->call_hook('init', (%{$params}));
 
-	# Call setup() method, which should be implemented in the sub-class!
-	$self->setup();
+    # Call setup() method, which should be implemented in the sub-class!
+    $self->setup();
 }
 
 
@@ -345,32 +344,32 @@ sub redirect {
 
 # called by RUN to determine the runmode
 sub __get_runmode {
-	my $self     = shift;
-	my $rm_param = shift;
+    my $self     = shift;
+    my $rm_param = shift;
 
-	# Support call-back instead of CGI mode param
-	my $rm = ref($rm_param) eq 'CODE' ? $rm_param->($self)             # Get run mode from subref
+    # Support call-back instead of CGI mode param
+    my $rm = ref($rm_param) eq 'CODE' ? $rm_param->($self)             # Get run mode from subref
            : ref($rm_param) eq 'HASH' ? $rm_param->{run_mode}          # support setting run mode from PATH_INFO
            :                            $self->query->param($rm_param) # Get run mode from CGI param
            ;
     
-	# If $rm undefined, use default (start) mode
-	$rm = $self->start_mode unless defined($rm) && length($rm);
+    # If $rm undefined, use default (start) mode
+    $rm = $self->start_mode unless defined($rm) && length($rm);
 
-	return $rm;
+    return $rm;
 }
 
 # called by __get_body to determine the
 # runmode. returns coderef
 sub __get_runmeth {
-	my $self = shift;
-	my $rm   = shift;
+    my $self = shift;
+    my $rm   = shift;
 
-	my $runmode_method;
+    my $runmode_method;
 
     my $is_autoload = 0; # flag whether or not we end up using AUTOLOAD 
 
-	my $runmodes = $self->run_modes();
+    my $runmodes = $self->run_modes();
 
     # Default: runmode is stored and is not an autoload method
     return ( $runmodes->{$rm}, $is_autoload)
@@ -383,91 +382,90 @@ sub __get_runmeth {
     $runmode_method = $runmodes->{'AUTOLOAD'};
     $is_autoload = 1;
 
-	return ($runmode_method, $is_autoload);
+    return ($runmode_method, $is_autoload);
 }
 
 
 # this is executed by sub run to actually assemble the page
 sub __get_body {
-	my $self  = shift;
-	my $rm    = shift;
+    my $self  = shift;
+    my $rm    = shift;
 
-	my ($runmode_method, $is_autoload) = $self->__get_runmeth($rm);
+    my ($runmode_method, $is_autoload) = $self->__get_runmeth($rm);
 
     #$self->dump( { rm_meth => $runmode_method, rm =>$rm });
 
-	my $body;
+    my $body;
     
     # see if we can run the runmode
-	eval {
+    eval {
         $body = $is_autoload
               ? $self->$runmode_method($rm)
               : $self->$runmode_method();
-	};
+    };
     
     # on error, call the appropriate hook
-	if ($@) {
-		my $error = $@;
-		$self->call_hook('error', $error);
-		if (my $em = $self->error_mode) {
-			$body = $self->$em( $error );
-		} else {
-			confess("Error executing run mode '$rm': $error");
-		}
-	}
+    if ($@) {
+        my $error = $@;
+        $self->call_hook('error', $error);
+        if (my $em = $self->error_mode) {
+            $body = $self->$em( $error );
+        } else {
+            confess("Error executing run mode '$rm': $error");
+        }
+    }
 
-	# Make sure that $body is not undefined (suppress 'uninitialized value'
-	# warnings)
-	return defined $body ? $body : '';
+    # Make sure that $body is not undefined (suppress 'uninitialized value'
+    # warnings)
+    return defined $body ? $body : '';
 }
 
 # get/set the mode_parameter
 sub mode_param {
-	my $self = shift;
-	my $mode_param;
+    my $self = shift;
+    my $mode_param;
 
-	my %p;
+    my %p;
     
-    #die "PATHINFO!\n";
-	# expecting a scalar or code ref
-	if ((scalar @_) == 1) {
+    # expecting a scalar or code ref
+    if ((scalar @_) == 1) {
         $mode_param = $_[0];
         #print "SCALAR SET\n";
-	}
-	# expecting hash style params
-	else {
+    }
+    # expecting hash style params
+    else {
         
-		confess "Web::MooseCap->mode_param() : You gave me an odd number of parameters to mode_param()!"
+        confess "Web::MooseCap->mode_param() : You gave me an odd number of parameters to mode_param()!"
             unless ((@_ % 2) == 0);
-		%p = @_;
-		$mode_param = $p{param};
+        %p = @_;
+        $mode_param = $p{param};
 
-		if ( $p{path_info} && $self->query->path_info() ) {
+        if ( $p{path_info} && $self->query->path_info() ) {
             
             #print "PATHINFO SET\n";
-			my $path_info = $self->query->path_info();
+            my $path_info = $self->query->path_info();
 
-			my $index = $p{path_info};
-			# two cases: negative or positive index
-			# negative index counts from the end of path_info
-			# positive index needs to be fixed because 
-			#    computer scientists like to start counting from zero.
-			$index -= 1 if ($index > 0) ;	
+            my $index = $p{path_info};
+            # two cases: negative or positive index
+            # negative index counts from the end of path_info
+            # positive index needs to be fixed because 
+            #    computer scientists like to start counting from zero.
+            $index -= 1 if ($index > 0) ;    
 
-			# remove the leading slash
-			$path_info =~ s!^/!!;
+            # remove the leading slash
+            $path_info =~ s!^/!!;
 
-			# grab the requested field location
-			$path_info = (split q'/', $path_info)[$index] || '';
+            # grab the requested field location
+            $path_info = (split q'/', $path_info)[$index] || '';
 
-			$mode_param = (length $path_info)            # if the path has a length
+            $mode_param = (length $path_info)            # if the path has a length
                         ?  { run_mode => $path_info }    # return a hash with the run_mode
                         : $mode_param;                   # otherwise just set the mode_param as normal
-		}
+        }
 
-	}
+    }
 
-	# If data is provided, set it
+    # If data is provided, set it
     $self->__mode_param( $mode_param )
         if defined $mode_param
             && (
@@ -476,65 +474,65 @@ sub mode_param {
                  || length $mode_param
             );
         
-	return $self->__mode_param();
+    return $self->__mode_param();
 }
 
 # meat of the work done here
 sub run {
-	my $self = shift;
-	my $q = $self->query();
+    my $self = shift;
+    my $q = $self->query();
 
-	my $rm_param = $self->mode_param();
+    my $rm_param = $self->mode_param();
 
-	my $rm = $self->__get_runmode($rm_param);
+    my $rm = $self->__get_runmode($rm_param);
 
-	# Set get_current_runmode() for access by user later
+    # Set get_current_runmode() for access by user later
     $self->_set_current_runmode($rm);
 
     # reset the stash
     $self->_stash({});
     $self->call_hook('stash_init');
 
-	# Allow prerun_mode to be changed
+    # Allow prerun_mode to be changed
     $self->__prerun_mode_locked(0);
 
-	# Call PRE-RUN hook, now that we know the run mode
-	# This hook can be used to provide run mode specific behaviors
-	# before the run mode actually runs.
- 	$self->call_hook('prerun', $rm);
+    # Call PRE-RUN hook, now that we know the run mode
+    # This hook can be used to provide run mode specific behaviors
+    # before the run mode actually runs.
+     $self->call_hook('prerun', $rm);
 
-	# If prerun_mode has been set, use it!
-	my $prerun_mode = $self->prerun_mode();
-	if (length($prerun_mode)) {
-		$rm = $prerun_mode;
+    # If prerun_mode has been set, use it!
+    my $prerun_mode = $self->prerun_mode();
+    if (length($prerun_mode)) {
+        $rm = $prerun_mode;
         $self->_set_current_runmode($rm);
-	}
+    }
 
-	# Lock prerun_mode from being changed after cgiapp_prerun()
+    # Lock prerun_mode from being changed after cgiapp_prerun()
     $self->__prerun_mode_locked(1);
 
-	# Process run mode!
-	my $body = $self->__get_body($rm);
+    # Process run mode!
+    my $body = $self->__get_body($rm);
 
-	# Support scalar-ref for body return
-	$body = $$body if ref $body eq 'SCALAR';
+    # Support scalar-ref for body return
+    $body = $$body if ref $body eq 'SCALAR';
 
-	# Call cgiapp_postrun() hook
-	$self->call_hook('postrun', \$body);
+    # Call cgiapp_postrun() hook
+    $self->call_hook('postrun', \$body);
 
-	# Set up HTTP headers
-	my $headers = $self->_send_headers();
+    # Set up HTTP headers
+    my $headers = $self->_send_headers();
 
-	# Build up total output
-	my $output  = $headers.$body;
+    # Build up total output
+    my $output  = $headers.$body;
 
-	# Send output to browser (unless we're in serious debug mode!)
-	print $output unless ($ENV{CGI_APP_RETURN_ONLY});
+    # Send output to browser (unless we're in serious debug mode!)
+    print $output unless ($ENV{CGI_APP_RETURN_ONLY});
 
-	# clean up operations
-	$self->call_hook('teardown');
+    # clean up operations
+    $self->call_hook('teardown');
 
-	return $output;
+    return $output;
 }
 
 
@@ -544,57 +542,57 @@ sub run {
 
 # builder method for query attribute. I'm gonna start with CGI::Simple
 sub cgiapp_get_query {
-	my $self = shift;
+    my $self = shift;
 
-	# Include CGI.pm and related modules
-	require CGI::Simple;
+    # Include CGI.pm and related modules
+    require CGI::Simple;
 
-	# Get the query object
-	my $q = CGI::Simple->new();
+    # Get the query object
+    my $q = CGI::Simple->new();
 
-	return $q;
+    return $q;
 }
 
 # init hoook
 sub cgiapp_init {
-	my $self = shift;
-	my @args = (@_);
+    my $self = shift;
+    my @args = (@_);
 
-	# Nothing to init, yet!
+    # Nothing to init, yet!
 }
 
 
 # prerun hook
 sub cgiapp_prerun {
-	my $self = shift;
-	my $rm = shift;
+    my $self = shift;
+    my $rm = shift;
 
-	# Nothing to prerun, yet!
+    # Nothing to prerun, yet!
 }
 
 
 sub cgiapp_postrun {
-	my $self = shift;
-	my $bodyref = shift;
+    my $self = shift;
+    my $bodyref = shift;
 
-	# Nothing to postrun, yet!
+    # Nothing to postrun, yet!
 }
 
 
 sub setup {
-	my $self = shift;
+    my $self = shift;
 
     $self->run_modes(
-		'start' => 'dump_html',
-	);
+        'start' => 'dump_html',
+    );
 
 }
 
 
 sub teardown {
-	my $self = shift;
+    my $self = shift;
 
-	# Nothing to shut down, yet!
+    # Nothing to shut down, yet!
 }
 
 
@@ -606,26 +604,26 @@ sub teardown {
 
 # add header, preserving previous
 sub header_add {
-	my $self = shift;
-	return $self->__header_props_update(\@_,'add');
+    my $self = shift;
+    return $self->__header_props_update(\@_,'add');
 }
 
 # add headers, clobbering previous
 sub header_set {
-	my $self = shift;
-	return $self->__header_props_update(\@_,'set');
+    my $self = shift;
+    return $self->__header_props_update(\@_,'set');
 }
 
 # clobber all previous headers
 sub header_props {
-	my $self = shift;
-	return $self->__header_props_update(\@_,'props');
+    my $self = shift;
+    return $self->__header_props_update(\@_,'props');
 }
 
 # used by header_props and header_add to update the headers
 sub __header_props_update {
-	my $self     = shift;
-	my $data_ref = shift;
+    my $self     = shift;
+    my $data_ref = shift;
     my ($meth)    = validate_pos( @_,
         {
             type        => SCALAR,
@@ -635,49 +633,49 @@ sub __header_props_update {
         }, 
     );
 
-	my @data = @$data_ref;
+    my @data = @$data_ref;
 
-	my $props;
+    my $props;
 
-	# If data is provided, set it!
-	if (scalar(@data)) {
-		warn "header_props called while header_type set to 'none', headers will NOT be sent!"
+    # If data is provided, set it!
+    if (scalar(@data)) {
+        warn "header_props called while header_type set to 'none', headers will NOT be sent!"
             if $self->header_type eq 'none';
             
-		# Is it a hash, or hash-ref?
+        # Is it a hash, or hash-ref?
         # Make a copy
-		if (ref($data[0]) eq 'HASH')     { %$props = %{$data[0]}; }
+        if (ref($data[0]) eq 'HASH')     { %$props = %{$data[0]}; }
         # It appears to be a possible hash (even # of elements)
         elsif ((scalar(@data) % 2) == 0) { %$props = @data; }
         # error
         else {
-			confess("Odd number of elements passed to header_$meth().  Not a valid hash")
-		}
+            confess("Odd number of elements passed to header_$meth().  Not a valid hash")
+        }
 
-		# merge in new headers, appending new values passed as array refs
-		if ( $meth eq 'add' ) {
+        # merge in new headers, appending new values passed as array refs
+        if ( $meth eq 'add' ) {
             
             # iterate through array ref items and save existing values
-			for my $key_set_to_aref (grep { ref $props->{$_} eq 'ARRAY'} keys %$props) {
-				my $existing_val = $self->__header_props_get($key_set_to_aref); # save the existing val
-				next unless defined $existing_val; 
-				my @existing_val_array = (ref $existing_val eq 'ARRAY') ? @$existing_val : ($existing_val);
-				$props->{$key_set_to_aref} = [ @existing_val_array, @{ $props->{$key_set_to_aref} } ];
-			}
-			$self->__header_props_set( %$props ); # put new values in with presevered arrays
-		}
+            for my $key_set_to_aref (grep { ref $props->{$_} eq 'ARRAY'} keys %$props) {
+                my $existing_val = $self->__header_props_get($key_set_to_aref); # save the existing val
+                next unless defined $existing_val; 
+                my @existing_val_array = (ref $existing_val eq 'ARRAY') ? @$existing_val : ($existing_val);
+                $props->{$key_set_to_aref} = [ @existing_val_array, @{ $props->{$key_set_to_aref} } ];
+            }
+            $self->__header_props_set( %$props ); # put new values in with presevered arrays
+        }
         elsif ( $meth eq 'set' ) {
             $self->__header_props_set(%$props);
         }
-		# Set new headers, clobbering existing values
-		elsif ($meth eq 'props' ) {
-			$self->__header_props($props);
-		}
+        # Set new headers, clobbering existing values
+        elsif ($meth eq 'props' ) {
+            $self->__header_props($props);
+        }
 
-	}
+    }
 
-	# If we've gotten this far, return the value!
-	return (%{ $self->__header_props()});
+    # If we've gotten this far, return the value!
+    return (%{ $self->__header_props()});
 }
 
 ###########################
@@ -686,9 +684,9 @@ sub __header_props_update {
 
 
 sub _send_headers {
-	my $self = shift;
-	my $q    = $self->query;
-	my $type = $self->header_type;
+    my $self = shift;
+    my $q    = $self->query;
+    my $type = $self->header_type;
 
     return
         $type eq 'redirect' ? $q->redirect( %{$self->__header_props} )
@@ -703,150 +701,150 @@ sub add_callback {
     # param - self_or_class - class name or instance of class
     # param - hook - name of the hook to add a callback to
     # param - callback - CODEREF to call 
-	my ($self_or_class, $hook, $callback) = @_;
+    my ($self_or_class, $hook, $callback) = @_;
 
-	$hook = lc $hook;
+    $hook = lc $hook;
 
-	die "no callback provided when calling add_callback" unless $callback;
+    die "no callback provided when calling add_callback" unless $callback;
 
     my ( $self, $class ) =  ref $self_or_class
                          ? ( $self_or_class, ref $self_or_class )
                          : (undef, $self_or_class);
 
-    	die "Unknown hook ($hook)"
+        die "Unknown hook ($hook)"
             unless exists $class->__class_callbacks()->{$hook};
                          
     # if $self, add it only to this instance's callback list
-	if ( $self ) {
-		# Install in object
+    if ( $self ) {
+        # Install in object
         $self->__instance_callbacks()->{$hook} = []
             unless $self->__instance_callbacks()->{$hook};
-		push @{ $self->__instance_callbacks()->{$hook} }, $callback;
-	}
+        push @{ $self->__instance_callbacks()->{$hook} }, $callback;
+    }
     # add to the class callback
-	else {
-		# Install in class
-		push @{ $class->__class_callbacks()->{$hook}{$class} }, $callback;
-	}
+    else {
+        # Install in class
+        push @{ $class->__class_callbacks()->{$hook}{$class} }, $callback;
+    }
 
 }
 
 
 # install a new hook, registered at the class level always
 sub new_hook {
-	my ($class, $hook) = @_;
+    my ($class, $hook) = @_;
     # install new hook in the class
     $class->__class_callbacks()->{$hook} = {}
         unless exists $class->__class_callbacks()->{$hook};
-	return 1;
+    return 1;
 }
 
 
 
 sub call_hook {
-	my $self      = shift;
-	my $app_class = ref $self || $self;
-	my $hook      = lc shift;
-	my @args      = @_;
+    my $self      = shift;
+    my $app_class = ref $self || $self;
+    my $hook      = lc shift;
+    my @args      = @_;
 
     # check if hook exists
     confess "Unknown hook ($hook)"
         unless exists $app_class->__class_callbacks()->{$hook};
 
-	my %executed_callback;
+    my %executed_callback;
 
-	# First, run callbacks installed in the object
+    # First, run callbacks installed in the object
     my @instance_callbacks =  defined $self->__instance_callbacks()->{$hook}
                            ? @{ $self->__instance_callbacks()->{$hook} }
                            : ()
                            ;
-	foreach my $callback ( @instance_callbacks ) {
-		next if $executed_callback{$callback};
-		eval { $self->$callback(@args); };
-		$executed_callback{$callback} = 1;
-		die "Error executing object callback in $hook stage: $@" if $@;
-	}
+    foreach my $callback ( @instance_callbacks ) {
+        next if $executed_callback{$callback};
+        eval { $self->$callback(@args); };
+        $executed_callback{$callback} = 1;
+        die "Error executing object callback in $hook stage: $@" if $@;
+    }
 
-	# Next, run callbacks installed in class hierarchy
-	# Cache this value as a performance boost
+    # Next, run callbacks installed in class hierarchy
+    # Cache this value as a performance boost
     if ( scalar @{$self->__superclass_cache()} == 0 ) {
         my @cb_classes = ($app_class->meta->class_precedence_list);
         $self->__superclass_cache( \@cb_classes );
     }
 
-	# Get list of classes that the current app inherits from
-	foreach my $class (@{ $self->__superclass_cache }) {
+    # Get list of classes that the current app inherits from
+    foreach my $class (@{ $self->__superclass_cache }) {
 
-		# skip those classes that contain no callbacks
-		next unless exists $self->__class_callbacks()->{$hook}{$class};
+        # skip those classes that contain no callbacks
+        next unless exists $self->__class_callbacks()->{$hook}{$class};
 
         my @callbacks
             = @{ $self->__class_callbacks()->{$hook}{$class} };
 
-		# call all of the callbacks in the class
-		foreach my $callback (@callbacks) {
-			next if $executed_callback{$callback};
-			eval { $self->$callback(@args); };
-			$executed_callback{$callback} = 1;
-			die "Error executing class callback in $hook stage: $@" if $@;
-		}
-	}
+        # call all of the callbacks in the class
+        foreach my $callback (@callbacks) {
+            next if $executed_callback{$callback};
+            eval { $self->$callback(@args); };
+            $executed_callback{$callback} = 1;
+            die "Error executing class callback in $hook stage: $@" if $@;
+        }
+    }
 
 }
 
 sub dump {
-	my $c = shift;
-	my $output = '';
+    my $c = shift;
+    my $output = '';
 
-	# Dump run mode
-	my $current_runmode = $c->get_current_runmode();
-	$current_runmode = "" unless (defined($current_runmode));
-	$output .= "Current Run mode: '$current_runmode'\n";
+    # Dump run mode
+    my $current_runmode = $c->get_current_runmode();
+    $current_runmode = "" unless (defined($current_runmode));
+    $output .= "Current Run mode: '$current_runmode'\n";
 
-	# Dump Params
-	$output .= "\nQuery Parameters:\n";
-	my @params = $c->query->param();
-	foreach my $p (sort(@params)) {
-		my @data = $c->query->param($p);
-		my $data_str = "'".join("', '", @data)."'";
-		$output .= "\t$p => $data_str\n";
-	}
+    # Dump Params
+    $output .= "\nQuery Parameters:\n";
+    my @params = $c->query->param();
+    foreach my $p (sort(@params)) {
+        my @data = $c->query->param($p);
+        my $data_str = "'".join("', '", @data)."'";
+        $output .= "\t$p => $data_str\n";
+    }
 
-	# Dump ENV
-	$output .= "\nQuery Environment:\n";
-	foreach my $ek (sort(keys(%ENV))) {
-		$output .= "\t$ek => '".$ENV{$ek}."'\n";
-	}
+    # Dump ENV
+    $output .= "\nQuery Environment:\n";
+    foreach my $ek (sort(keys(%ENV))) {
+        $output .= "\t$ek => '".$ENV{$ek}."'\n";
+    }
 
-	return $output;
+    return $output;
 }
 
 
 sub dump_html {
-	my $c   = shift;
-	my $query  = $c->query();
-	my $output = '';
+    my $c   = shift;
+    my $query  = $c->query();
+    my $output = '';
 
-	# Dump run-mode
-	my $current_runmode = $c->get_current_runmode();
-	$output .= "<p>Current Run-mode: '<strong>$current_runmode</strong>'</p>\n";
+    # Dump run-mode
+    my $current_runmode = $c->get_current_runmode();
+    $output .= "<p>Current Run-mode: '<strong>$current_runmode</strong>'</p>\n";
 
-	# Dump Params
-	$output .= "<p>Query Parameters:</p>\n";
-	$output .= $query->Dump;
+    # Dump Params
+    $output .= "<p>Query Parameters:</p>\n";
+    $output .= $query->Dump;
 
-	# Dump ENV
-	$output .= "<p>Query Environment:</p>\n<ol>\n";
-	foreach my $ek ( sort( keys( %ENV ) ) ) {
-		$output .= sprintf(
-			"<li> %s => '<strong>%s</strong>'</li>\n",
-			$query->escapeHTML( $ek ),
-			$query->escapeHTML( $ENV{$ek} )
-		);
-	}
-	$output .= "</ol>\n";
+    # Dump ENV
+    $output .= "<p>Query Environment:</p>\n<ol>\n";
+    foreach my $ek ( sort( keys( %ENV ) ) ) {
+        $output .= sprintf(
+            "<li> %s => '<strong>%s</strong>'</li>\n",
+            $query->escapeHTML( $ek ),
+            $query->escapeHTML( $ENV{$ek} )
+        );
+    }
+    $output .= "</ol>\n";
 
-	return $output;
+    return $output;
 }
 
 __PACKAGE__->meta->make_immutable; no Moose; 1;
@@ -869,14 +867,14 @@ reusable web-applications
 
   # override the base setup routine
   override 'setup' => {
-	my $self = shift;
-	$self->start_mode('mode1');
-	$self->mode_param('rm');
-	$self->run_modes(
-		'mode1' => 'do_stuff',
-		'mode2' => 'do_more_stuff',
-		'mode3' => 'do_something_else'
-	);
+    my $self = shift;
+    $self->start_mode('mode1');
+    $self->mode_param('rm');
+    $self->run_modes(
+        'mode1' => 'do_stuff',
+        'mode2' => 'do_more_stuff',
+        'mode3' => 'do_something_else'
+    );
   }
   sub do_stuff { ... }
   sub do_more_stuff { ... }
