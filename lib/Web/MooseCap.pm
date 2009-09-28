@@ -89,6 +89,8 @@ has '__superclass_cache' => (
     init_arg    => undef,
 );
 
+
+# simple lock for the prerun_mode 
 has '__prerun_mode_locked' => (
     is          => 'rw',
     isa         => 'Bool',
@@ -549,6 +551,9 @@ sub cgiapp_get_query {
 
     # Get the query object
     my $q = CGI::Simple->new();
+    
+    # default to utf-8
+    $q->charset('utf-8');
 
     return $q;
 }
@@ -891,22 +896,6 @@ reusable web-applications
 
 Web::MooseCap: -adjective
 
-=over 4
-
-=item 1.
-
-cheerfully optimistic, hopeful, or confident
-
-=item 2.
-
-reddish; ruddy
-
-=item 3.
-
-CGI::Application remixed with Moose
-
-=back
-
 This started as an experiement in Moose and grew out from there.  Having used
 L<CGI::Application> (CAP) for quite a few years, I figured it'd be a good way to
 learn by rewriting it with Moose.  After talking with a few others, I thought
@@ -933,13 +922,14 @@ How is this different from CGI::Application?
 
 =item 1.
 
-the C<forward> and C<redirect> methods are built in. (See 
-L<CGI::Application::Plugin::Forward> and L<CGI::Application::Plugin::Redirect> 
-modules.)
+It's in Moose. Bigger overhead, yes.  Basically, not a good idea to run as 
+vanilla CGI. FastCGI or mod_perl is the way to go.
 
 =item 2.
 
-Added C<stash> (a la Catalyst)
+The C<forward> and C<redirect> methods are built in. (See 
+L<CGI::Application::Plugin::Forward> and L<CGI::Application::Plugin::Redirect> 
+modules.)
 
 =item 3.
 
@@ -955,7 +945,7 @@ into the stash for every request.  By default, adds the query object
 
 =item 5.
 
-Constructor parameters must all be lower case now.  For example, in a cgi
+Constructor parameters may be upper OR lower case.  For example, in a cgi
 instance script:
 
   use Web::MooseCapWebApp;
