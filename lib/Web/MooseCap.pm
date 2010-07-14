@@ -38,7 +38,7 @@ has 'start_mode' => (
 
 # The query object, compatible with CGI/CGI::Simple etc
 has 'query' => (
-    metaclass   => 'MultiInitArg',
+    traits      => ['MooseX::MultiInitArg::Trait'],
     is          => 'rw',
     isa         => 'Object',
     lazy        => 1,
@@ -108,14 +108,14 @@ has '__current_runmode' => (
 
 # headers to output for a request
 has '__header_props' => (
-    metaclass   => 'Collection::Hash',
+    traits      => [qw(Hash)],
     is          => 'rw',
     isa         => 'HashRef',
     default     => sub { +{} },
-    provides    => {
-        clear   => '__header_props_clear',
-        set     => '__header_props_set',
-        get     => '__header_props_get',
+    handles    => {
+        __header_props_clear => 'clear',
+        __header_props_set   => 'set',
+        __header_props_get   => 'get',
     },
 );
 
@@ -153,18 +153,18 @@ class_has '__class_callbacks' => (
 # CGI.pm param-like method
 
 has 'params' => (
+    traits      => ['MooseX::MultiInitArg::Trait'],
     is          => 'rw',
     isa         => 'HashRef',
     lazy_build  => 1,
     builder     => 'init_params',
-    metaclass   => 'MultiInitArg',
     init_args   => [qw/PARAMS/],
 );
 
 sub delete {
-    my $self = shift;
-    return unless defined $_[0];
-    return delete $self->params->{$_[0]};
+    my ($self, $key) = @_;
+    return unless defined $key;
+    return delete $self->params->{$key};
 }
 
 sub init_params { +{} }
