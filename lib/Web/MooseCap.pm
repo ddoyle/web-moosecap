@@ -2,7 +2,6 @@ package Web::MooseCap;
 
 use Moose;
 use Moose::Util::TypeConstraints;
-use MooseX::AttributeHelpers;
 use MooseX::ClassAttribute;
 use MooseX::MultiInitArg;
 
@@ -12,7 +11,8 @@ use Class::MOP;
 use Clone qw(clone);
 use Data::Dumper;
 use Params::Validate qw(SCALAR HASHREF ARRAYREF validate validate_pos);
-#use Template;
+
+use namespace::autoclean;
 
 our $VERSION   = '0.01';
 our $AUTHORITY = 'cpan:DDOYLE';
@@ -47,7 +47,8 @@ has 'query' => (
 );
 
 # the name of the error mode
-has 'error_mode' => ( is => 'rw',
+has 'error_mode' => (
+    is          => 'rw',
     isa         => 'Str',
     default     => '',
     init_arg    => undef,
@@ -73,12 +74,7 @@ before 'prerun_mode' => sub {
 # PRIVATE ATTRIBUTES
 
 # this is to determine the mode param
-has '__mode_param' => (
-    is          => 'rw',
-    isa         => 'Any',
-    default => 'rm',
-    init_arg => undef,
-);
+has '__mode_param' => ( is => 'rw', isa => 'Any', default => 'rm' );
 
 # cache item to remember callback classes checked so we don't have to do the
 # expensive $app_class->meta->class_precedence_list every time
@@ -86,24 +82,17 @@ has '__superclass_cache' => (
     is          => 'rw',
     isa         => 'ArrayRef[Str]',
     default     => sub { [] },
-    init_arg    => undef,
 );
 
 
 # simple lock for the prerun_mode 
-has '__prerun_mode_locked' => (
-    is          => 'rw',
-    isa         => 'Bool',
-    default     => 1,
-    init_arg    => undef,
-);
+has '__prerun_mode_locked' => ( is => 'rw', isa => 'Bool', default => 1 );
 
 # stores/sets the current runmode
 has '__current_runmode' => (
     isa         => 'Str',
     reader      => 'get_current_runmode',  # public
     writer      => '_set_current_runmode', # private
-    init_arg    => undef,
 );
 
 # headers to output for a request
@@ -137,7 +126,6 @@ class_has '__class_callbacks' => (
     default     => sub { return {
     #    hook name            package         sub
         init            => { 'Web::MooseCap' => [ 'cgiapp_init'       ] },
-        stash_init      => { 'Web::MooseCap' => [ 'cgiapp_stash_init' ] },
         prerun          => { 'Web::MooseCap' => [ 'cgiapp_prerun'     ] },
         postrun         => { 'Web::MooseCap' => [ 'cgiapp_postrun'    ] },
         teardown        => { 'Web::MooseCap' => [ 'teardown'          ] },
@@ -153,13 +141,15 @@ class_has '__class_callbacks' => (
 # CGI.pm param-like method
 
 has 'params' => (
-    traits      => ['MooseX::MultiInitArg::Trait'],
+    traits      => [qw/Hash MooseX::MultiInitArg::Trait/],
     is          => 'rw',
     isa         => 'HashRef',
     lazy_build  => 1,
-    builder     => 'init_params',
+    builder     => 'build_params',
     init_args   => [qw/PARAMS/],
+    handles     => { _params_set => 'set' },
 );
+
 
 sub delete {
     my ($self, $key) = @_;
@@ -167,7 +157,7 @@ sub delete {
     return delete $self->params->{$key};
 }
 
-sub init_params { +{} }
+sub build_params { +{} }
 
 sub param {
     my $self = shift;
@@ -179,47 +169,21 @@ sub param {
     return $self->params->{$_[0]} if scalar @_ == 1 && ref $_[0] ne 'HASH';
 
     # merge data in
-    $self->merge_into($self->params, @_ );
+    $self->_params_set( ref $_[0] eq 'HASH' ? %{$_[0]} : @_ );
 
     # if we're setting exactly one param, return it
     return scalar @_ == 2 ? $_[1] : undef;
-}
-
-#######################
-# tt with stash integration
-
-sub merge_into {
-    my $self      = shift;
-    my $base_hash = shift || {};
-    
-    confess "must pass a hashref" unless ref $base_hash eq 'HASH';
-    
-    # if we're given a hashref to start, use it
-    if (ref $_[0] eq 'HASH') {
-        $base_hash->{$_} = $_[0]->{$_} foreach keys %{$_[0]};
-        return $base_hash;
-    }
-    
-    # else it's an even number paramlist
-    confess "parameter assignment must be an even numbered list" unless
-        ((scalar @_ % 2) == 0 );
-    
-    my %new = @_;
-    while( my ($key, $value) = each %new ) {
-        $base_hash->{$key} = $value;
-    }
-    
-    return $base_hash;
-    
 }
 
 ######################
 # Runmode attribute + getter/setter
 # Hashref of valid runmodes
 has '_run_modes' => (
+    traits      => [ qw/Hash/ ],
     is          => 'rw',
     isa         => 'HashRef',
     default     => sub { +{} },
+    handles     => { _run_modes_set => 'set' },
 );
 
 sub run_modes {
@@ -230,12 +194,13 @@ sub run_modes {
     return $self->_run_modes() unless scalar @data;
 
     # handle the various formats of input
-    if    (ref($data[0]) eq 'HASH')  { @data = %{$data[0]};                  }
-    elsif (ref($data[0]) eq 'ARRAY') { @data = map { $_ => $_ } @{$data[0]}; }
-    elsif ((scalar(@data) % 2) != 0) {
-        confess("Odd number of elements passed to run_modes().  Not a valid hash");
+    if    (ref $data[0] eq 'HASH')   { @data = %{$data[0]};                  }
+    elsif (ref $data[0] eq 'ARRAY')  { @data = map { $_ => $_ } @{$data[0]}; }
+    elsif ( (scalar @data % 2) != 0) {
+        confess
+            "Odd number of elements passed to run_modes().  Not a valid hash";
     }
-    $self->_run_modes({%{$self->_run_modes()}, @data});
+    $self->_run_modes_set( @data );
 
     # If we've gotten this far, return the value!
     return $self->_run_modes(); 
@@ -296,12 +261,10 @@ sub redirect {
         $self->prerun_mode('dummy_redirect');
     };
 
-    if ($status) {
-        $self->header_add( -location => $location, -status => $status );
-    } else {
-        $self->header_add( -location => $location );
-    }
+    $self->header_add( -location => $location );
+    $self->header_add( -status => $status ) if $status;
     $self->header_type('redirect');
+
     return;
 
 }
@@ -396,11 +359,8 @@ sub mode_param {
     my %p;
     
     # expecting a scalar or code ref
-    if ((scalar @_) == 1) {
-        $mode_param = $_[0];
-        #print "SCALAR SET\n";
-    }
-    # expecting hash style params
+    if ( (scalar @_) == 1) { $mode_param = $_[0]; }
+    # or expecting hash style params
     else {
         
         confess "Web::MooseCap->mode_param() : You gave me an odd number of parameters to mode_param()!"
@@ -458,8 +418,7 @@ sub run {
     $self->_set_current_runmode($rm);
 
     # reset the stash
-    $self->_stash({});
-    $self->call_hook('stash_init');
+    #$self->call_hook('stash_init');
 
     # Allow prerun_mode to be changed
     $self->__prerun_mode_locked(0);
@@ -503,7 +462,6 @@ sub run {
     return $output;
 }
 
-
 ############################
 ####  OVERRIDE METHODS  ####
 ############################
@@ -532,7 +490,6 @@ sub cgiapp_init {
     # Nothing to init, yet!
 }
 
-
 # prerun hook
 sub cgiapp_prerun {
     my $self = shift;
@@ -541,14 +498,12 @@ sub cgiapp_prerun {
     # Nothing to prerun, yet!
 }
 
-
 sub cgiapp_postrun {
     my $self = shift;
     my $bodyref = shift;
 
     # Nothing to postrun, yet!
 }
-
 
 sub setup {
     my $self = shift;
@@ -595,14 +550,12 @@ sub header_props {
 sub __header_props_update {
     my $self     = shift;
     my $data_ref = shift;
-    my ($meth)    = validate_pos( @_,
-        {
-            type        => SCALAR,
-            regex       => qr/^(add|set|props)$/,
-            optional    => 1,
-            default     => 'add' # add by default
-        }, 
-    );
+    my ($meth)    = validate_pos( @_, {
+        type        => SCALAR,
+        regex       => qr/^(add|set|props)$/,
+        optional    => 1,
+        default     => 'add' # add by default
+    });
 
     my @data = @$data_ref;
 
@@ -615,7 +568,7 @@ sub __header_props_update {
             
         # Is it a hash, or hash-ref?
         # Make a copy
-        if (ref($data[0]) eq 'HASH')     { %$props = %{$data[0]}; }
+        if (ref $data[0] eq 'HASH') { %$props = %{$data[0]}; }
         # It appears to be a possible hash (even # of elements)
         elsif ((scalar(@data) % 2) == 0) { %$props = @data; }
         # error
@@ -653,7 +606,6 @@ sub __header_props_update {
 ####  PRIVATE METHODS  ####
 ###########################
 
-
 sub _send_headers {
     my $self = shift;
     my $q    = $self->query;
@@ -665,7 +617,6 @@ sub _send_headers {
       : $type eq 'none'     ? ''
       : confess "Invalid header_type '$type'"
 }
-
 
 sub add_callback {
     
@@ -702,7 +653,6 @@ sub add_callback {
 
 }
 
-
 # install a new hook, registered at the class level always
 sub new_hook {
     my ($class, $hook) = @_;
@@ -711,8 +661,6 @@ sub new_hook {
         unless exists $class->__class_callbacks()->{$hook};
     return 1;
 }
-
-
 
 sub call_hook {
     my $self      = shift;
@@ -735,7 +683,8 @@ sub call_hook {
         next if $executed_callback{$callback};
         eval { $self->$callback(@args); };
         $executed_callback{$callback} = 1;
-        die "Error executing object callback in $hook stage: $@" if $@;
+        confess "Error executing object callback in $hook stage: $@"
+            if $@;
     }
 
     # Next, run callbacks installed in class hierarchy
@@ -792,7 +741,6 @@ sub dump {
     return $output;
 }
 
-
 sub dump_html {
     my $c   = shift;
     my $query  = $c->query();
@@ -820,7 +768,7 @@ sub dump_html {
     return $output;
 }
 
-__PACKAGE__->meta->make_immutable; no Moose; 1;
+__PACKAGE__->meta->make_immutable; 1;
 
 __END__
 
