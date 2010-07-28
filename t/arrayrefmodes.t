@@ -1,4 +1,4 @@
-use Test::More tests => 7;
+use Test::More;
 
 use CGI;
 
@@ -43,7 +43,4 @@ $ENV{CGI_APP_RETURN_ONLY} = 1;
 	like($output, qr/Hello\ World\:\ testcgi3\_mode\ OK/);
 }
 
-
-###############
-####  EOF  ####
-###############
+done_testing();
