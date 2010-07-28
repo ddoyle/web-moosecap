@@ -470,15 +470,12 @@ sub run {
 sub cgiapp_get_query {
     my $self = shift;
 
-    # Include CGI.pm and related modules
-    require CGI::Simple;
-
-    # Get the query object
-    my $q = CGI::Simple->new();
+    require CGI;
     
-    # default to utf-8
-    $q->charset('utf-8');
-
+    # Get the query object
+    # we're going to default to utf-8
+    my $q = CGI->new( -charset => 'utf-8' );
+    
     return $q;
 }
 
@@ -508,9 +505,7 @@ sub cgiapp_postrun {
 sub setup {
     my $self = shift;
 
-    $self->run_modes(
-        'start' => 'dump_html',
-    );
+    $self->run_modes( 'start' => 'dump_html' );
 
 }
 
