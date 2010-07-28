@@ -2,28 +2,40 @@ package Web::MooseCap::Role::Stash;
 
 use Moose::Role;
 
+use namespace::autoclean -also => qr/^_/;
+
+requires qw/
+    cgiapp_prerun
+    query
+/;
 
 ###################
 # the stash
 has '_stash' => (
+    traits      => [qw/Hash/],
     is          => 'rw',
     isa         => 'HashRef',
     default     => sub { +{} },
-    init_arg    => undef,
+    handles     => {
+        stash_clear         => 'clear',
+        stash_is_empty      => 'is_empty',
+        stash_delete_key    => 'delete',
+        _stash_set          => 'set',
+        _stash_get          => 'get',
+    },
 );
 
 # stash is reset before cgiapp_prerun
 sub stash {
     my $self = shift;
-    my @args = @_;
     
     # if they want the hashref
     return $self->_stash() if scalar @_ == 0;
 
     # if they want to fetch a particular key ...
-    return $self->_stash->{$_[0]} if scalar @_ == 1 && ref $_[0] ne 'HASH' ;
+    return $self->_stash_get($_[0]) if scalar @_ == 1 && !ref $_[0];
    
-    $self->merge_into($self->_stash, @_ );
+    $self->_stash_set( ref $_[0] eq 'HASH' ? %{$_[0]} : @_ );
 
     return;
 }
@@ -37,5 +49,12 @@ sub cgiapp_stash_init {
     return;
 }
 
+#
+before 'cgiapp_prerun' => sub {
+    my $self = shift;
+    $self->stash_clear unless $self->stash_is_empty;
+    $self->cgiapp_stash_init();
+    return;
+};
 
 no Moose::Role; 1;
