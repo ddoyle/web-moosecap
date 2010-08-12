@@ -3,7 +3,6 @@ package Web::MooseCap::Template::HT;
 use Moose::Role;
 
 use Moose::Util::TypeConstraints;
-use MooseX::MultiInitArg;
 use Class::MOP;
 
 ############################################
@@ -20,21 +19,17 @@ coerce 'Web::MooseCap::Plugin::HT::tmpl_path'
         
 # default template path includes
 has 'tmpl_path' => (
-    metaclass   => 'MultiInitArg',
     is          => 'rw',
     isa         => 'Web::MooseCap::Plugin::HT::tmpl_path',
     default     => sub { [] },
     coerce      => 1,
-    init_args   => [qw/TMPL_PATH/],
 );
 
 # the template extension when we're not given a filename to load_tmpl
 has 'tmpl_extension' => (
-    metaclass   => 'MultiInitArg',
     is          => 'rw',
     isa         => 'Str',
     default     => '.html',
-    init_args   => [ qw/TMPL_EXTENSION/ ],
 );
 
 # the default HTML::Template type class used by load_tmpl
@@ -42,7 +37,6 @@ has 'html_tmpl_class' => (
     is          => 'rw',
     isa         => 'Str',
     default     => 'HTML::Template',
-    init_arg    => undef,
 );
 
 sub load_tmpl {

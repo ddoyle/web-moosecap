@@ -3,7 +3,6 @@ package Web::MooseCap;
 use Moose;
 use Moose::Util::TypeConstraints;
 use MooseX::ClassAttribute;
-use MooseX::MultiInitArg;
 
 use metaclass;
 
@@ -29,46 +28,33 @@ has 'header_type' => (
 );
 
 # start_mode - the default starting runmode for the app
-has 'start_mode' => (
-    is          => 'rw',
-    isa         => 'Str',
-    default     => 'start',
-    init_arg    => undef,
-);
+has 'start_mode' => ( is => 'rw', isa => 'Str', default => 'start' );
 
 # The query object, compatible with CGI/CGI::Simple etc
 has 'query' => (
-    traits      => ['MooseX::MultiInitArg::Trait'],
-    is          => 'rw',
-    isa         => 'Object',
-    lazy        => 1,
-    builder     => 'cgiapp_get_query',
-    init_args   => [qw/QUERY/],
+    is      => 'rw',
+    isa     => 'Object',
+    lazy    => 1,
+    builder => 'cgiapp_get_query',
 );
 
 # the name of the error mode
-has 'error_mode' => (
-    is          => 'rw',
-    isa         => 'Str',
-    default     => '',
-    init_arg    => undef,
-);
+has 'error_mode' => ( is => 'rw', isa => 'Str', default => '' );
 
 # accessor/mutator for the getting/setting the runmode in cgiapp_prerun
 # trigger is to ensure you're only doing it while in cgiapp_prerun
-has 'prerun_mode' => (
-    is          => 'rw',
-    isa         => 'Str',
-    default     => '',
-    init_arg    => undef,
-);
+has '_prerun_mode' => ( is => 'rw', isa => 'Str', default => '' );
 
-before 'prerun_mode' => sub {
+sub prerun_mode {
     my $self = shift;
+    my $mode = shift;
+    
     confess("prerun_mode() can only be called within cgiapp_prerun()!  Error")
         if $self->__prerun_mode_locked();
-    return;
-};
+        
+    $self->_prerun_mode($mode) if defined $mode;
+    return $self->_prerun_mode;        
+}
 
 #########################################
 # PRIVATE ATTRIBUTES
@@ -141,12 +127,10 @@ class_has '__class_callbacks' => (
 # CGI.pm param-like method
 
 has 'params' => (
-    traits      => [qw/Hash MooseX::MultiInitArg::Trait/],
     is          => 'rw',
     isa         => 'HashRef',
     lazy_build  => 1,
     builder     => 'build_params',
-    init_args   => [qw/PARAMS/],
     handles     => { _params_set => 'set' },
 );
 
@@ -466,16 +450,12 @@ sub run {
 ####  OVERRIDE METHODS  ####
 ############################
 
-# builder method for query attribute. I'm gonna start with CGI::Simple
+# builder method for query attribute.
 sub cgiapp_get_query {
     my $self = shift;
 
     require CGI;
-    
-    # Get the query object
-    # we're going to default to utf-8
-    my $q = CGI->new( -charset => 'utf-8' );
-    
+    my $q = CGI->new( -charset => 'utf-8' ); # default to UTF-8
     return $q;
 }
 
