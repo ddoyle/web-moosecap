@@ -127,6 +127,7 @@ class_has '__class_callbacks' => (
 # CGI.pm param-like method
 
 has 'params' => (
+    traits      => [qw/Hash/],
     is          => 'rw',
     isa         => 'HashRef',
     lazy_build  => 1,
